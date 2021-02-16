@@ -9,8 +9,11 @@ namespace btag.Tests
         {
             Parser parser = new Parser();
             parser.OpenStream("example");
-            parser.Parse();
-            
+            var success = parser.Parse();
+            if (!success)
+            {
+                throw new Exception("No success.");
+            }
         }
     }
 }

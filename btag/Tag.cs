@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -8,7 +9,7 @@ namespace btag
     {
         public Tag parent;
         public string title = "";
-        public Dictionary<byte, byte[]> variables = new Dictionary<byte, byte[]>();
+        public byte[]? value;
         public List<Tag> Childes = new List<Tag>();
         public bool active = true;
 
