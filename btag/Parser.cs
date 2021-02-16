@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -36,10 +37,6 @@ namespace btag
                     newTag = new Tag(Encoding.Default.GetString(title));
                     stream.Read(oneByte, 0, 1);
                 }
-                if (oneByte[0] == 0x02)
-                {
-                    manager.RemoveLast();
-                }
                 if (oneByte[0] == 0x03)
                 {
                     stream.Read(oneByte, 0, 1);
@@ -52,13 +49,26 @@ namespace btag
                     newTag.value = new byte[oneByte[0]];
                     newTag.value = value;
                 }
-                if (newTag == null)
+                if (newTag != null)
                 {
-                    continue;
+                    manager.AddChildToLast(newTag);
                 }
-                manager.AddChildToLast(newTag);
+                if (oneByte[0] == 0x02)
+                {
+                    manager.RemoveLast();
+                }
             }
             return true;
+        }
+
+        public Tag? FindTag(string title)
+        {
+            return manager.FindTagFromRoot(title);
+        }
+
+        public Tag GetManagerRoot()
+        {
+            return manager.GetRoot();
         }
     }
 }

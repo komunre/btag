@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using btag;
 
 namespace btag.Tests
@@ -14,6 +15,14 @@ namespace btag.Tests
             {
                 throw new Exception("No success.");
             }
+
+            var superTag = parser.FindTag("super");
+            Console.Out.WriteLine(superTag.value[0]);
+
+            Writer writer = new Writer();
+            writer.OpenStream("output.btag");
+            writer.WriteAllList(parser.GetManagerRoot().Childes);
+            writer.CloseStream();
         }
     }
 }

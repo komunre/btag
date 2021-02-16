@@ -26,6 +26,35 @@ namespace btag
             return tags[0];
         }
 
+        public Tag? FindTagFromRoot(string title)
+        {
+            return FindTag(tags[0], title);
+        }
+
+        public Tag? FindTag(Tag parent, string title)
+        {
+            if (parent != null)
+            {
+                if (parent.title == title)
+                {
+                    return parent;
+                }
+
+                if (parent.Childes.Count > 0)
+                {
+                    foreach (var child in parent.Childes)
+                    {
+                        var result = FindTag(child, title);
+                        if (result != null)
+                        {
+                            return result;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
         private Tag FindLast()
         {
             Tag curr = tags[0];
