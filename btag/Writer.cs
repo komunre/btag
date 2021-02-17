@@ -45,7 +45,7 @@ namespace btag
             stream.Write(Encoding.Default.GetBytes(tag.title));
             if (tag.value != null)
             {
-                stream.Write(new byte[] { 0x03 });
+                stream.Write(new byte[] { 0x03, (byte)tag.value.Length });
                 stream.Write(tag.value);
             }
             stream.Write(new byte[] { 0x00 });

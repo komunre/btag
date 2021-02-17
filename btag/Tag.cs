@@ -7,7 +7,10 @@ namespace btag
 {
     public class Tag
     {
-        public Tag parent;
+        public Tag parent {
+            get;
+            private set;
+        }
         public string title = "";
         public byte[]? value;
         public List<Tag> Childes = new List<Tag>();

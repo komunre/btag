@@ -27,6 +27,7 @@ namespace btag.Tests
             var main = new Tag("main");
             var first = new Tag("first");
             var second = new Tag("second");
+            second.value = new byte[]{ 10 };
             main.AddChild(first);
             first.AddChild(second);
             writer.OpenStream("output2.btag");

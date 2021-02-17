@@ -7,7 +7,6 @@ namespace btag
 {
     public class TagManager
     {
-        public int lastTag = 0;
         private List<Tag> tags = new List<Tag>();
 
         public TagManager()
@@ -18,7 +17,6 @@ namespace btag
         public void AddTag(Tag tag)
         {
             tags.Add(tag);
-            lastTag = tags.IndexOf(tag);
         }
 
         public Tag GetRoot()
