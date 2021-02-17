@@ -1,5 +1,7 @@
 BTag
 ======
+WIP, i'm panicking
+
 Simple data storage in byte file. You can use it or just watch sources. 
 
 # Documentation?
