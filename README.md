@@ -11,4 +11,5 @@ Simple data storage in byte file. You can use it or just watch sources.
 
 # Limitations
 255 bytes tag value. (yet)
+
 255 bytes tag title.
