@@ -29,15 +29,19 @@ namespace btag.Tests
             var second = new Tag("second");
             var subSecond = new Tag("subsecond");
             var third = new Tag("third");
+            var subSecond2 = new Tag("subsecond2");
+            var deeper = new Tag("deeper");
             second.value = new byte[]{ 0x62, 0x69, 0x67, 0x20, 0x74, 0x65, 0x73, 0x74, 0x20, 0x28, 0x62, 0x69, 0x67, 0x29 };
             main.AddChild(first);
             main.AddChild(second);
             second.AddChild(subSecond);
             main.AddChild(third);
+            second.AddChild(subSecond2);
+            subSecond.AddChild(deeper);
+
             writer.OpenStream("output2.btag");
             writer.WriteAll(main);
             writer.CloseStream();
-
             parser.Clear();
             parser.OpenStream("output2.btag");
             var success2 = parser.Parse();
