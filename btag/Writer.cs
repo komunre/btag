@@ -7,7 +7,6 @@ namespace btag
 {
     public class Writer
     {
-        int layer = 1;
         FileStream stream;
         public void OpenStream(string path)
         {
@@ -28,10 +27,6 @@ namespace btag
         public void WriteAll(Tag tag)
         {  
             WriteTag(tag);
-            if (tag.Childes.Count > 0)
-            {
-                layer++;
-            }
             foreach (var child in tag.Childes)
             {
                 WriteAll(child);
@@ -56,7 +51,6 @@ namespace btag
                 while (parent.parent != null && parent.parent.Childes.LastIndexOf(parent) == parent.parent.Childes.Count - 1)
                 {
                     stream.Write(new byte[] { 0x02 });
-                    layer--;
                     parent = parent.parent;
                 }
                 stream.Write(new byte[] { 0x02 });
@@ -68,7 +62,6 @@ namespace btag
         public void CloseStream()
         {
             stream.Close();
-            layer = 1;
         }
     }
 }

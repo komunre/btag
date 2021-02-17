@@ -9,20 +9,8 @@ namespace btag.Tests
         static void Main(string[] args)
         {
             Parser parser = new Parser();
-            parser.OpenStream("example");
-            var success = parser.Parse();
-            if (!success)
-            {
-                throw new Exception("No success.");
-            }
-
-            var superTag = parser.FindTag("super");
-            Console.Out.WriteLine(superTag.value[0]);
-
+          
             Writer writer = new Writer();
-            writer.OpenStream("output.btag");
-            writer.WriteAllList(parser.GetManagerRoot().Childes);
-            writer.CloseStream();
 
             var main = new Tag("main");
             var first = new Tag("first");
@@ -42,7 +30,6 @@ namespace btag.Tests
             writer.OpenStream("output2.btag");
             writer.WriteAll(main);
             writer.CloseStream();
-            parser.Clear();
             parser.OpenStream("output2.btag");
             var success2 = parser.Parse();
             if (!success2)
