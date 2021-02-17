@@ -45,7 +45,8 @@ namespace btag
             stream.Write(Encoding.Default.GetBytes(tag.title));
             if (tag.value != null)
             {
-                stream.Write(new byte[] { 0x03, (byte)tag.value.Length });
+                stream.Write(new byte[] { 0x03 });
+                stream.Write(BitConverter.GetBytes((Int16)tag.value.Length));
                 stream.Write(tag.value);
             }
             stream.Write(new byte[] { 0x00 });
@@ -55,11 +56,11 @@ namespace btag
                 {
                     tag = tag.parent;
                 }
-                var counter = 0;
-                while (tag.Childes.Count - counter >= 0)
+                var counter = minus;
+                while (counter > 0)
                 {
                     stream.Write(new byte[] { 0x02 });
-                    counter++;
+                    counter--;
                 }
             }
         }

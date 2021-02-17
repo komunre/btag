@@ -22,6 +22,7 @@ namespace btag
                 return false;
             }
             byte[] oneByte = new byte[1] { 0x01 };
+            byte[] twoBytes = new byte[2];
             while (true)
             {
                 var result = stream.Read(oneByte, 0, 1);
@@ -39,9 +40,9 @@ namespace btag
                 }
                 if (oneByte[0] == 0x03)
                 {
-                    stream.Read(oneByte, 0, 1);
-                    byte[] value = new byte[oneByte[0]];
-                    stream.Read(value, 0, oneByte[0]);
+                    stream.Read(twoBytes, 0, 2);
+                    byte[] value = new byte[BitConverter.ToInt16(twoBytes)];
+                    stream.Read(value, 0, BitConverter.ToInt16(twoBytes));
                     if (newTag == null)
                     {
                         return false;
@@ -64,6 +65,16 @@ namespace btag
         public Tag? FindTag(string title)
         {
             return manager.FindTagFromRoot(title);
+        }
+
+        public Tag? FindTagLayerRoot(string title)
+        {
+            return manager.FindTagLayer(manager.GetRoot(), title);
+        }
+
+        public Tag? FindTagLayer(Tag layer, string title)
+        {
+            return manager.FindTagLayer(layer, title);
         }
 
         public Tag GetManagerRoot()

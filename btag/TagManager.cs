@@ -29,6 +29,22 @@ namespace btag
             return FindTag(tags[0], title);
         }
 
+        public Tag? FindTagLayer(Tag layer, string title)
+        {
+            if (layer.title == title)
+            {
+                return layer;
+            }
+            foreach (var child in layer.Childes)
+            {
+                if (child.title == title)
+                {
+                    return child;
+                }
+            }
+            return null;
+        }
+
         public Tag? FindTag(Tag parent, string title)
         {
             if (parent != null)

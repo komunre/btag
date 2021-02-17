@@ -27,9 +27,13 @@ namespace btag.Tests
             var main = new Tag("main");
             var first = new Tag("first");
             var second = new Tag("second");
+            var subSecond = new Tag("subsecond");
+            var third = new Tag("third");
             second.value = new byte[]{ 0x62, 0x69, 0x67, 0x20, 0x74, 0x65, 0x73, 0x74, 0x20, 0x28, 0x62, 0x69, 0x67, 0x29 };
             main.AddChild(first);
-            first.AddChild(second);
+            main.AddChild(second);
+            second.AddChild(subSecond);
+            main.AddChild(third);
             writer.OpenStream("output2.btag");
             writer.WriteAll(main);
             writer.CloseStream();
@@ -41,6 +45,9 @@ namespace btag.Tests
             {
                 throw new Exception("No success.");
             }
+            var mainLayer = parser.FindTagLayerRoot("main");
+            var secondLayer = parser.FindTagLayer(mainLayer, "second");
+            Console.WriteLine(Encoding.Default.GetString(secondLayer.value));
         }
     }
 }
