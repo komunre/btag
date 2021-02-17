@@ -37,7 +37,7 @@ namespace btag.Tests
             second.AddChild(subSecond);
             main.AddChild(third);
             second.AddChild(subSecond2);
-            subSecond.AddChild(deeper);
+            subSecond2.AddChild(deeper);
 
             writer.OpenStream("output2.btag");
             writer.WriteAll(main);

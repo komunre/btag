@@ -52,18 +52,14 @@ namespace btag
             stream.Write(new byte[] { 0x00 });
             if (tag.Childes.Count == 0)
             {
-                if (tag.parent.Childes.LastIndexOf(tag) != tag.parent.Childes.Count - 1)
+                var parent = tag;
+                while (parent.parent != null && parent.parent.Childes.LastIndexOf(parent) == parent.parent.Childes.Count - 1)
                 {
                     stream.Write(new byte[] { 0x02 });
                     layer--;
-                    tag = tag.parent;
+                    parent = parent.parent;
                 }
-                else
-                {
-                    stream.Write(new byte[] { 0x02, 0x02 });
-                    layer -= 2;
-                    tag = tag.parent.parent;
-                }
+                stream.Write(new byte[] { 0x02 });
             }
         }
 
