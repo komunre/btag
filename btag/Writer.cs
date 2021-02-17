@@ -55,10 +55,11 @@ namespace btag
                 {
                     tag = tag.parent;
                 }
-                while (tag.Childes.Count - minus > 0 && minus > 0)
+                var counter = 0;
+                while (tag.Childes.Count - counter >= 0)
                 {
                     stream.Write(new byte[] { 0x02 });
-                    minus++;
+                    counter++;
                 }
             }
         }
@@ -66,6 +67,7 @@ namespace btag
         public void CloseStream()
         {
             stream.Close();
+            minus = 0;
         }
     }
 }
