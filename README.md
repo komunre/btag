@@ -9,3 +9,6 @@ Simple data storage in byte file. You can use it or just watch sources.
 
 `Writer` - use `OpenStream` and `WriteAll` or `WriteAllList` to write to file.
 
+# Limitations
+255 bytes tag value. (yet)
+255 bytes tag title.
