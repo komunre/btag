@@ -87,5 +87,11 @@ namespace btag
             var curr = FindLast();
             curr.LastDisable();
         }
+
+        public void Clear()
+        {
+            tags = new List<Tag>();
+            tags.Add(new Tag("root"));
+        }
     }
 }

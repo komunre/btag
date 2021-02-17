@@ -70,5 +70,11 @@ namespace btag
         {
             return manager.GetRoot();
         }
+
+        public void Clear()
+        {
+            manager.Clear();
+            stream.Close();
+        }
     }
 }
