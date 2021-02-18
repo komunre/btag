@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30907.101
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "btag", "btag\btag.csproj", "{7CC91CC0-E2D7-4ED7-BD31-A52E5CC25C18}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "btag", "btag\btag.csproj", "{7CC91CC0-E2D7-4ED7-BD31-A52E5CC25C18}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "btag.Tests", "btag.Tests\btag.Tests.csproj", "{8C7CE7D4-291C-4DD8-9877-16EEAC6955E9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "btag.Tests", "btag.Tests\btag.Tests.csproj", "{8C7CE7D4-291C-4DD8-9877-16EEAC6955E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "btag.UnitTests", "btag.UnitTests\btag.UnitTests.csproj", "{40C5A264-1BA9-4001-9AF1-307F1DB599E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{8C7CE7D4-291C-4DD8-9877-16EEAC6955E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C7CE7D4-291C-4DD8-9877-16EEAC6955E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C7CE7D4-291C-4DD8-9877-16EEAC6955E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40C5A264-1BA9-4001-9AF1-307F1DB599E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40C5A264-1BA9-4001-9AF1-307F1DB599E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40C5A264-1BA9-4001-9AF1-307F1DB599E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40C5A264-1BA9-4001-9AF1-307F1DB599E1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

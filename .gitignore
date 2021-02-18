@@ -1,5 +1,7 @@
 obj/*
 bin/*
+btag.UnitTests/obj/*
+btag.UnitTests/bin/*
 btag.Tests/bin/*
 btag.Tests/obj/*
 btag/bin/*
