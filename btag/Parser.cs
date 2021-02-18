@@ -31,7 +31,6 @@ namespace btag
                 stream.Read(twoBytes, 0, 2);
                 byte[] value = new byte[BitConverter.ToInt16(twoBytes)];
                 stream.Read(value, 0, BitConverter.ToInt16(twoBytes));
-                newTag.value = new byte[oneByte[0]];
                 newTag.value = value;
             }
             manager.AddChildToLast(newTag);
