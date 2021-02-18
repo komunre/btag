@@ -73,20 +73,14 @@ namespace btag
         {
             Tag curr = tags[0];
             var stop = false;
-            while (curr.Childes.Count != 0 && !stop)
+            while (curr.Childes.Count != 0 && !stop) // if children is here
             {
                 var minus = 1;
-                curr = curr.Childes[curr.Childes.Count - minus];
-                while (!curr.active)
+                curr = curr.Childes[curr.Childes.Count - minus]; // check last child
+                if (!curr.active) // return to parent
                 {
-                    minus++;
-                    if (minus > curr.parent.Childes.Count)
-                    {
-                        curr = curr.parent;
-                        stop = true;
-                        break;
-                    }
-                    curr = curr.parent.Childes[curr.parent.Childes.Count - minus];
+                    curr = curr.parent;
+                    stop = true;
                 }
             }
             return curr;
@@ -98,7 +92,7 @@ namespace btag
             curr.AddChild(tag);
         }
 
-        public void RemoveLast()
+        public void DeactivateLast()
         {
             var curr = FindLast();
             curr.LastDisable();

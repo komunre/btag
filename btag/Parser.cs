@@ -10,9 +10,32 @@ namespace btag
     {
         private FileStream? stream;
         private TagManager manager = new TagManager();
+        private int streamCounter = 0;
         public void OpenStream(string path)
         {
             stream = File.OpenRead(path);
+        }
+
+        public bool ParseTag(byte[] title)
+        {
+            if (stream == null)
+            {
+                return false;
+            }
+            byte[] oneByte = new byte[1] { 0x01 };
+            byte[] twoBytes = new byte[2];
+            Tag newTag = new Tag(Encoding.Default.GetString(title));
+            stream.Read(oneByte, 0, 1);
+            if (oneByte[0] == 0x03)
+            {
+                stream.Read(twoBytes, 0, 2);
+                byte[] value = new byte[BitConverter.ToInt16(twoBytes)];
+                stream.Read(value, 0, BitConverter.ToInt16(twoBytes));
+                newTag.value = new byte[oneByte[0]];
+                newTag.value = value;
+            }
+            manager.AddChildToLast(newTag);
+            return true;
         }
 
         public bool Parse()
@@ -22,7 +45,6 @@ namespace btag
                 return false;
             }
             byte[] oneByte = new byte[1] { 0x01 };
-            byte[] twoBytes = new byte[2];
             while (true)
             {
                 var result = stream.Read(oneByte, 0, 1);
@@ -30,33 +52,16 @@ namespace btag
                 {
                     break;
                 }
-                Tag? newTag = null;
-                if (oneByte[0] == 0x01) {
+                if (oneByte[0] == 0x01)
+                {
                     stream.Read(oneByte, 0, 1);
                     byte[] title = new byte[oneByte[0]];
                     stream.Read(title, 0, oneByte[0]);
-                    newTag = new Tag(Encoding.Default.GetString(title));
-                    stream.Read(oneByte, 0, 1);
-                }
-                if (oneByte[0] == 0x03)
-                {
-                    stream.Read(twoBytes, 0, 2);
-                    byte[] value = new byte[BitConverter.ToInt16(twoBytes)];
-                    stream.Read(value, 0, BitConverter.ToInt16(twoBytes));
-                    if (newTag == null)
-                    {
-                        return false;
-                    }
-                    newTag.value = new byte[oneByte[0]];
-                    newTag.value = value;
-                }
-                if (newTag != null)
-                {
-                    manager.AddChildToLast(newTag);
+                    ParseTag(title);
                 }
                 if (oneByte[0] == 0x02)
                 {
-                    manager.RemoveLast();
+                    manager.DeactivateLast();
                 }
             }
             return true;
@@ -82,9 +87,30 @@ namespace btag
             return manager.GetRoot();
         }
 
+        private void ResetStream()
+        {
+            if (stream == null)
+            {
+                return;
+            }
+            stream.Seek(0, SeekOrigin.Begin);
+        }
         public void Clear()
         {
+            if (stream == null)
+            {
+                return;
+            }
             manager.Clear();
+            ResetStream();
+        }
+
+        public void CloseStream()
+        {
+            if (stream == null)
+            {
+                return;
+            }
             stream.Close();
         }
     }
