@@ -98,7 +98,7 @@ namespace btag
             curr.AddChild(tag);
         }
 
-        public void RemoveLast()
+        public void DeactivateLast()
         {
             var curr = FindLast();
             curr.LastDisable();

@@ -61,7 +61,7 @@ namespace btag
                 }
                 if (oneByte[0] == 0x02)
                 {
-                    manager.RemoveLast();
+                    manager.DeactivateLast();
                 }
             }
             return true;
