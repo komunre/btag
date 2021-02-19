@@ -17,9 +17,11 @@ var parser = new Parser();
 parser.OpenStream("filename.btag");
 ```
 
-Write one simple tag
+### Write one simple tag
 
-`writer.WriteAll(new Tag("main"));`
+```cs
+writer.WriteAll(new Tag("main"));
+````
 
 
 ## Add child
