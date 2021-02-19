@@ -2,9 +2,7 @@ BTag
 ======
 BTag is data storage in binary file C# library (+ server for other languages soon!). It is developed to store your data in tree, using tags children and parents.</p>
 
-You can easiely store your users logins and passwords using tree like this
-
-Not a real tree, just indicative
+You can easiely store your users logins and passwords using tree like this (not a real tree, just indicative).
 * users
 	* someUser
 		* login=someLogin</li>
