@@ -12,7 +12,7 @@ namespace btag.Tests
     public class Server
     {
         public string data = null;
-        Socket[] clients = new Socket[100];
+        List<Socket> clients = new List<Socket>();
 
         public void Listen(int port)
         {
@@ -28,10 +28,9 @@ namespace btag.Tests
             while (true)
             {
                 Thread.Sleep(50);
-                var clIndex = GetNullClient(clients);
-                clients[clIndex] = listener.Accept();
+                clients.Add(listener.Accept());
                 data = null;
-                HandleClient(clIndex);
+                HandleClient(clients.Count - 1);
             }
         }
 
@@ -39,7 +38,7 @@ namespace btag.Tests
         {
             await Task.Run(() =>
             {
-                while (true)
+                while (clients[clIndex].Connected)
                 {
                     var length = new byte[2];
                     clients[clIndex].Receive(length);
@@ -49,17 +48,5 @@ namespace btag.Tests
                 }
             });
         } 
-
-        private int GetNullClient(in Socket[] clients)
-        {
-            for (int x = 0; x < clients.Length; x++)
-            {
-                if (clients[x] == null)
-                {
-                    return x;
-                }
-            }
-            return 0;
-        }
     }
 }
