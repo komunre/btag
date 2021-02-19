@@ -7,7 +7,7 @@ You can easiely store your users logins and passwords using tree like this (not 
 	* someUser
 		* login=someLogin
 		* password=somePassword
-	*otherUser
+	* otherUser
 		* login=otherLogin
 		* password=otherPassword
 
