@@ -1,6 +1,23 @@
 BTag
 ======
-Simple data storage in binary file. Please open issues when any bug appears.
+BTag is data storage in binary file C# library (+ server for other languages soon!). It is developed to store your data in tree, using tags children and parents.</p>
+
+You can easiely store your users logins and passwords using tree like this
+
+Not a real tree, just indicative
+* users
+	* someUser
+		* login=someLogin</li>
+		*password=somePassword</li>
+	*otherUser
+		* login=otherLogin</li>
+		* password=otherPassword</li>
+
+Every tag end is independent from name, so it's faster to read and easier to change.
+
+### Real tree example
+
+![Real tree example](https://cdn.discordapp.com/attachments/461958492199190530/812280743430455306/tree.png)
 
 Testing phase.
 
