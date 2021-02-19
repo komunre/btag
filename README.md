@@ -5,11 +5,11 @@ BTag is data storage in binary file C# library (+ server for other languages soo
 You can easiely store your users logins and passwords using tree like this (not a real tree, just indicative).
 * users
 	* someUser
-		* login=someLogin</li>
-		*password=somePassword</li>
-	*otherUser
-		* login=otherLogin</li>
-		* password=otherPassword</li>
+		* login=someLogin
+		* password=somePassword
+	* otherUser
+		* login=otherLogin
+		* password=otherPassword
 
 Every tag end is independent from name, so it's faster to read and easier to change.
 
