@@ -7,7 +7,7 @@ Testing phase.
 # Example
 *Do not forget about using directive!*
 
-Open stream
+## Open stream
 
 ```cs
 var writer = new Writer();
@@ -22,7 +22,7 @@ Write one simple tag
 `writer.WriteAll(new Tag("main"));`
 
 
-Add child
+## Add child
 
 ```cs
 var main = new Tag("main");
@@ -39,7 +39,7 @@ manager.AddChildToLast(new Tag("child"));
 
 (Deactivate tag before adding to tag manager if you don't want to add new childes to it using AddChildToLast)
 
-Write to file
+## Write to file
 
 ```cs
 writer.WriteAll(main);
@@ -47,6 +47,14 @@ writer.WriteAll(main);
 var tagsList = new List<Tag>(){ main, new Tag("secondMain") };
 writer.WriteAllList(tagsList);
 ```
+
+## Parse file
+```cs
+parser.Parse();
+var main = parser.FindTagLayerRoot("main");
+var child = parser.FindTagLayer(main, "child");
+```
+
 
 # Documentation?
 `Tag` class is created for storing tag data in memory. So you can create file in memory and then write to file. Contains value variable that can store tag value and `Childes` for accessing children list.
