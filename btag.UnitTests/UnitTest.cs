@@ -8,6 +8,27 @@ namespace btag.UnitTests
     public class UnitTest
     {
         [TestMethod]
+        public void WriteAndParseEquality()
+        {
+            var main = new Tag("main");
+            main.AddChild(new Tag("first"));
+            var second = new Tag("second");
+            second.AddChild(new Tag("testingDeep"));
+            main.AddChild(second);
+            main.AddChild(new Tag("third"));
+
+            var writer = new Writer();
+            writer.OpenStream("equality.btag");
+            writer.WriteAll(main);
+            writer.CloseStream();
+
+            var parser = new Parser();
+            parser.OpenStream("equality.btag");
+            parser.Parse();
+            Assert.IsTrue(main.ChildrenEquals(parser.FindTagLayerRoot("main")));
+        }
+
+        [TestMethod]
         public void SpeedTest()
         {
             var manager = new TagManager();

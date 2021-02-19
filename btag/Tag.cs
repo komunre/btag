@@ -31,5 +31,22 @@ namespace btag
         {
             active = false;
         }
+
+        /// <summary>
+        /// FOR TESTING ONLY
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <returns></returns>
+        public bool ChildrenEquals(Tag tag)
+        {
+            for (var i = 0; i < tag.Childes.Count; i++) // one level only. Needs to be improved
+            {
+                if (Childes[i].title != tag.Childes[i].title) 
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }
