@@ -4,6 +4,8 @@ btag.UnitTests/obj/*
 btag.UnitTests/bin/*
 btag.Tests/bin/*
 btag.Tests/obj/*
+btag.Server/bin/*
+btag.Server/obj/*
 btag/bin/*
 btag/obj/*
 .vs/*

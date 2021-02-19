@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "btag.Tests", "btag.Tests\bt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "btag.UnitTests", "btag.UnitTests\btag.UnitTests.csproj", "{40C5A264-1BA9-4001-9AF1-307F1DB599E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "btag.Server", "btag.Server\btag.Server.csproj", "{2F1E36BC-7BC2-405E-AA32-2FC5CA1FF9D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{40C5A264-1BA9-4001-9AF1-307F1DB599E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40C5A264-1BA9-4001-9AF1-307F1DB599E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{40C5A264-1BA9-4001-9AF1-307F1DB599E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F1E36BC-7BC2-405E-AA32-2FC5CA1FF9D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F1E36BC-7BC2-405E-AA32-2FC5CA1FF9D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F1E36BC-7BC2-405E-AA32-2FC5CA1FF9D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F1E36BC-7BC2-405E-AA32-2FC5CA1FF9D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
