@@ -7,7 +7,7 @@ Testing phase.
 # Example
 *Do not forget about using directive!*
 
-## Open stream
+### Open stream
 
 ```cs
 var writer = new Writer();
@@ -24,7 +24,7 @@ writer.WriteAll(new Tag("main"));
 ````
 
 
-## Add child
+### Add child
 
 ```cs
 var main = new Tag("main");
@@ -41,7 +41,7 @@ manager.AddChildToLast(new Tag("child"));
 
 (Deactivate tag before adding to tag manager if you don't want to add new childes to it using AddChildToLast)
 
-## Write to file
+### Write to file
 
 ```cs
 writer.WriteAll(main);
@@ -50,7 +50,7 @@ var tagsList = new List<Tag>(){ main, new Tag("secondMain") };
 writer.WriteAllList(tagsList);
 ```
 
-## Parse file
+### Parse file
 ```cs
 parser.Parse();
 var main = parser.FindTagLayerRoot("main");
