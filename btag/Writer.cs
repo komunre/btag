@@ -17,6 +17,10 @@ namespace btag
             stream = new BufferedStream(File.Open(path, FileMode.OpenOrCreate));
         }
 
+        /// <summary>
+        /// Write sseveral main tags to file
+        /// </summary>
+        /// <param name="tags">List with main tags</param>
         public void WriteAllList(List<Tag> tags)
         {
             foreach(var tag in tags)
@@ -24,6 +28,11 @@ namespace btag
                 WriteAll(tag);
             }
         }
+
+        /// <summary>
+        /// Write main tag to file
+        /// </summary>
+        /// <param name="tag">Main (root) tag</param>
         public void WriteAll(Tag tag)
         {  
             WriteTag(tag);
