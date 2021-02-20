@@ -48,7 +48,7 @@ namespace btag
             if (tag.Childes.Count == 0)
             {
                 var parent = tag;
-                while (parent.parent != null && parent.parent.Childes.LastIndexOf(parent) == parent.parent.Childes.Count - 1)
+                while (parent.parent != null && parent.parent.Childes[parent.parent.Childes.Count - 1] == parent)
                 {
                     stream.Write(new byte[] { 0x02 });
                     parent = parent.parent;
