@@ -7,7 +7,7 @@ namespace btag
 {
     public class Tag
     {
-        public Tag parent {
+        public Tag? parent {
             get;
             private set;
         }
@@ -19,6 +19,12 @@ namespace btag
         public Tag(string titleEx)
         {
             title = titleEx;
+        }
+
+        public Tag(string titleEx, byte[] valueEx)
+        {
+            title = titleEx;
+            value = valueEx;
         }
 
         public void AddChild(Tag tag)

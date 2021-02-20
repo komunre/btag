@@ -45,6 +45,25 @@ namespace btag
             return null;
         }
 
+        public bool TryFindTagLayer(Tag layer, string title, out Tag? tag)
+        {
+            if (layer.title == title)
+            {
+                tag = layer;
+                return true;
+            }
+            foreach (var child in layer.Childes)
+            {
+                if (child.title == title)
+                {
+                    tag = child;
+                    return true;
+                }
+            }
+            tag = null;
+            return false;
+        }
+
         public Tag? FindTag(Tag parent, string title)
         {
             if (parent != null)
