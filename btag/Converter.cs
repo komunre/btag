@@ -41,5 +41,35 @@ namespace btag
         {
             return new byte[] { (byte)num };
         }
+
+        public static int ToOptimized(byte[] num)
+        {
+            if (num.Length == 4)
+            {
+                return ToInt32(num);
+            }
+            else if (num.Length == 2)
+            {
+                return ToInt16(num);
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        public static int ToInt32(byte[] num)
+        {
+            return BitConverter.ToInt32(num);
+        }
+        public static int ToInt16(byte[] num)
+        {
+            return BitConverter.ToInt16(num);
+        }
+
+        public static string ToString(byte[] str)
+        {
+            return Encoding.Default.GetString(str);
+        }
     }
 }
