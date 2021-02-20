@@ -13,11 +13,11 @@ namespace btag
 
         public static byte[] GetOptimized(int num)
         {
-            if (num < byte.MaxValue)
+            if (num <= byte.MaxValue)
             {
                 return GetInt8(num);
             }
-            else if (num < Int16.MaxValue)
+            else if (num <= Int16.MaxValue)
             {
                 return GetInt16(num);
             }
