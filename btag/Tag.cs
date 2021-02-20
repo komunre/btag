@@ -12,6 +12,9 @@ namespace btag
             private set;
         }
         public string title = "";
+        /// <summary>
+        /// Tag value. Converter can help
+        /// </summary>
         public byte[]? value;
         public List<Tag> Childes = new List<Tag>();
         public bool active = true;
@@ -27,6 +30,10 @@ namespace btag
             value = valueEx;
         }
 
+        /// <summary>
+        /// Adds child to tag
+        /// </summary>
+        /// <param name="tag">child to add</param>
         public void AddChild(Tag tag)
         {
             tag.parent = this;
