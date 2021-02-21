@@ -91,15 +91,14 @@ namespace btag
         private Tag FindLast()
         {
             Tag curr = tags[0];
-            var stop = false;
-            while (curr.Childes.Count != 0 && !stop) // if children is here
+            while (curr.Childes.Count != 0) // if children is here
             {
                 var minus = 1;
                 curr = curr.Childes[curr.Childes.Count - minus]; // check last child
                 if (!curr.active) // return to parent
                 {
                     curr = curr.parent;
-                    stop = true;
+                    break;
                 }
             }
             return curr;

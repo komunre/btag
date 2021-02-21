@@ -10,7 +10,6 @@ namespace btag
     {
         private FileStream? stream;
         private TagManager manager = new TagManager();
-        private int streamCounter = 0;
         public void OpenStream(string path)
         {
             stream = File.OpenRead(path);

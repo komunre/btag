@@ -52,6 +52,10 @@ namespace btag
             {
                 return ToInt16(num);
             }
+            else if (num.Length == 1)
+            {
+                return num[0];
+            }
             else
             {
                 return 0;

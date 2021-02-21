@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.ComponentModel;
 using System.Text;
+using System.IO;
 
 namespace btag.UnitTests
 {
@@ -34,8 +35,6 @@ namespace btag.UnitTests
         [Ignore]
         public void TagGeneration(ref Tag tag)
         {
-            var manager = new TagManager();
-            manager.AddChildToLast(tag);
             for (int x = 0; x < 1000; x++)
             {
                 Tag testTag = new Tag("test");
@@ -59,16 +58,27 @@ namespace btag.UnitTests
                 testTag.AddChild(volume);
                 testTag.active = false;
 
-                manager.AddChildToLast(testTag);
+                tag.AddChild(testTag);
             }
         }
 
         [TestMethod]
         public void SpeedTest1()
         {
-            
+
             var main = new Tag("main");
-            TagGeneration(ref main);
+            if (!File.Exists("speedtest.btag"))
+            {
+                TagGeneration(ref main);
+            }
+            else
+            {
+                var parser = new Parser();
+                parser.OpenStream("speedtest.btag");
+                parser.Parse();
+                main = parser.FindTagLayerRoot("main");
+                parser.CloseStream();
+            }
 
             var writer = new Writer();
             writer.OpenStream("speedtest.btag");
@@ -83,6 +93,34 @@ namespace btag.UnitTests
             var parser = new Parser();
             parser.OpenStream("speedtest.btag");
             Assert.IsTrue(parser.Parse());
+        }
+
+        [TestMethod]
+        public void SPWManagerTest()
+        {
+            string date;
+            int volume;
+            PWManager manager = new PWManager("speedtest.btag");
+            manager.FindOnLayer("main");
+            manager.FindOnLayer("test");
+            manager.FindOnLayer("date");
+            date = manager.GetValueStr();
+            manager.GoUpper();
+            manager.FindOnLayer("volume");
+            volume = manager.GetValueInt();
+            Assert.IsTrue(date == "30/03/2017" && volume == 104000);
+        }
+
+        [TestMethod]
+        public void SPWManagerWriteTest()
+        {
+            PWManager manager = new PWManager("speedtest.btag");
+            manager.FindOnLayer("main");
+            manager.FindOnLayer("test");
+            manager.FindOnLayer("volume");
+            var volume = 100;
+            manager.SetValue(volume);
+            Assert.IsTrue(manager.GetValueInt() == 100);
         }
     }
 }
