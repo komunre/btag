@@ -50,7 +50,7 @@ namespace btag
             if (tag.value != null)
             {
                 stream.Write(new byte[] { 0x03 });
-                stream.Write(BitConverter.GetBytes((Int16)tag.value.Length));
+                stream.Write(BitConverter.GetBytes((UInt16)tag.value.Length));
                 stream.Write(tag.value);
             }
             stream.Write(new byte[] { 0x00 });

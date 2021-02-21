@@ -28,8 +28,8 @@ namespace btag
             if (oneByte[0] == 0x03)
             {
                 stream.Read(twoBytes, 0, 2);
-                byte[] value = new byte[BitConverter.ToInt16(twoBytes)];
-                stream.Read(value, 0, BitConverter.ToInt16(twoBytes));
+                byte[] value = new byte[BitConverter.ToUInt16(twoBytes)];
+                stream.Read(value, 0, BitConverter.ToUInt16(twoBytes));
                 newTag.value = value;
             }
             manager.AddChildToLast(newTag);
