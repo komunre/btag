@@ -5,12 +5,25 @@ using System.Diagnostics.CodeAnalysis;
 using System.ComponentModel;
 using System.Text;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
 
 namespace btag.UnitTests
 {
     [TestClass]
     public class UnitTest
     {
+        private TestContext testContextInstance;
+
+        public TestContext TestContext
+        {
+            get { return testContextInstance; }
+            set { testContextInstance = value; }
+        }
+
         [TestMethod]
         public void WriteAndParseEquality()
         {
@@ -35,11 +48,11 @@ namespace btag.UnitTests
         [Ignore]
         public void TagGeneration(ref Tag tag)
         {
-            for (int x = 0; x < 1000; x++)
+            for (int x = 0; x < 100000; x++)
             {
-                Tag testTag = new Tag("test");
+                Tag testTag = new Tag("test" + x);
                 Tag date = new Tag("date");
-                date.value = Encoding.Default.GetBytes("30/03/2017");
+                date.value = Converter.GetOptimized(125825285);
                 Tag open = new Tag("open");
                 open.value = Converter.GetOptimized(3005);
                 Tag high = new Tag("high");
@@ -98,17 +111,17 @@ namespace btag.UnitTests
         [TestMethod]
         public void SPWManagerTest()
         {
-            string date;
+            int date;
             int volume;
             PWManager manager = new PWManager("speedtest.btag");
             manager.FindOnLayer("main");
-            manager.FindOnLayer("test");
+            manager.FindOnLayer("test0");
             manager.FindOnLayer("date");
-            date = manager.GetValueStr();
+            date = manager.GetValueInt();
             manager.GoUpper();
             manager.FindOnLayer("volume");
             volume = manager.GetValueInt();
-            Assert.IsTrue(date == "30/03/2017" && volume == 104000);
+            Assert.IsTrue(date == 125825285 && volume == 104000);
         }
 
         [TestMethod]
@@ -116,11 +129,52 @@ namespace btag.UnitTests
         {
             PWManager manager = new PWManager("speedtest.btag");
             manager.FindOnLayer("main");
-            manager.FindOnLayer("test");
+            manager.FindOnLayer("test0");
             manager.FindOnLayer("volume");
             var volume = 100;
             manager.SetValue(volume);
             Assert.IsTrue(manager.GetValueInt() == 100);
+        }
+
+        [TestMethod]
+        public void BtagVsJson()
+        {
+            string jsonStr = "";
+            Dictionary<string, Dictionary<string, int>> tags = new Dictionary<string, Dictionary<string, int>>();
+            for (int i = 0; i != 100000; i++)
+            {
+                Dictionary<string, int> things = new Dictionary<string, int>();
+                int date = 125825285;
+                var open = 3005;
+                var high = 3010;
+                var low = 2936;
+                var close = 2936;
+                var volume = 104000;
+                things.Add("date", date);
+                things.Add("open", open);
+                things.Add("high", high);
+                things.Add("low", low);
+                things.Add("close", close);
+                things.Add("volume", volume);
+                tags.Add("test" + i, things);
+            }
+            jsonStr = JsonSerializer.Serialize(tags);
+            File.WriteAllText("hell.json", jsonStr);
+            var jsonStopwatch = new Stopwatch();
+            jsonStopwatch.Start();
+            var uh = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, int>>>(jsonStr);
+            jsonStopwatch.Stop();
+
+            var btagStopWatch = new Stopwatch();
+            btagStopWatch.Start();
+            var parser = new Parser();
+            parser.OpenStream("speedtest.btag");
+            parser.Parse();
+            parser.CloseStream();
+            btagStopWatch.Stop();
+
+            TestContext.Write("btag: " + btagStopWatch.ElapsedMilliseconds + "\njson: " + jsonStopwatch.ElapsedMilliseconds);
+            Assert.IsTrue(btagStopWatch.ElapsedMilliseconds <= jsonStopwatch.ElapsedMilliseconds);
         }
     }
 }
