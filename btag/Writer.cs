@@ -53,7 +53,10 @@ namespace btag
                 stream.Write(BitConverter.GetBytes((UInt16)tag.value.Length));
                 stream.Write(tag.value);
             }
-            stream.Write(new byte[] { 0x00 });
+            else
+            {
+                stream.Write(new byte[] { 0x00 });
+            }
             if (tag.Childes.Count == 0)
             {
                 var parent = tag;

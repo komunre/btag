@@ -8,15 +8,12 @@ namespace btag
     public class TagManager
     {
         private List<Tag> tags = new List<Tag>();
+        Tag last;
 
         public TagManager()
         {
             tags.Add(new Tag("root"));
-        }
-
-        public void AddTag(Tag tag)
-        {
-            tags.Add(tag);
+            last = tags[0];
         }
 
         public Tag GetRoot()
@@ -93,8 +90,7 @@ namespace btag
             Tag curr = tags[0];
             while (curr.Childes.Count != 0) // if children is here
             {
-                var minus = 1;
-                curr = curr.Childes[curr.Childes.Count - minus]; // check last child
+                curr = curr.Childes[curr.Childes.Count - 1]; // check last child
                 if (!curr.active) // return to parent
                 {
                     curr = curr.parent;
@@ -106,14 +102,14 @@ namespace btag
 
         public void AddChildToLast(Tag tag)
         {
-            var curr = FindLast();
-            curr.AddChild(tag);
+            last.AddChild(tag);
+            last = tag;
         }
 
         public void DeactivateLast()
         {
-            var curr = FindLast();
-            curr.LastDisable();
+            last.active = false;
+            last = last.parent;
         }
 
         public void Clear()

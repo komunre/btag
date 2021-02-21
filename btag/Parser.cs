@@ -10,6 +10,8 @@ namespace btag
     {
         private FileStream? stream;
         private TagManager manager = new TagManager();
+        private byte[] bytes = new byte[2];
+
         public void OpenStream(string path)
         {
             stream = File.OpenRead(path);
@@ -17,20 +19,14 @@ namespace btag
 
         private bool ParseTag(byte[] title)
         {
-            if (stream == null)
-            {
-                return false;
-            }
-            byte[] oneByte = new byte[1] { 0x01 };
-            byte[] twoBytes = new byte[2];
             Tag newTag = new Tag(Encoding.Default.GetString(title));
-            stream.Read(oneByte, 0, 1);
-            if (oneByte[0] == 0x03)
+            stream.Read(bytes, 0, 1);
+            if (bytes[0] == 0x03)
             {
-                stream.Read(twoBytes, 0, 2);
-                byte[] value = new byte[BitConverter.ToUInt16(twoBytes)];
-                stream.Read(value, 0, BitConverter.ToUInt16(twoBytes));
-                newTag.value = value;
+                stream.Read(bytes, 0, 2);
+                var size = BitConverter.ToUInt16(bytes);
+                newTag.value = new byte[size];
+                stream.Read(newTag.value, 0, size);
             }
             manager.AddChildToLast(newTag);
             return true;
@@ -42,26 +38,16 @@ namespace btag
         /// <returns></returns>
         public bool Parse()
         {
-            if (stream == null)
+            while (stream.Read(bytes, 0, 1) != 0)
             {
-                return false;
-            }
-            byte[] oneByte = new byte[1] { 0x01 };
-            while (true)
-            {
-                var result = stream.Read(oneByte, 0, 1);
-                if (result == 0)
+                if (bytes[0] == 0x01)
                 {
-                    break;
-                }
-                if (oneByte[0] == 0x01)
-                {
-                    stream.Read(oneByte, 0, 1);
-                    byte[] title = new byte[oneByte[0]];
-                    stream.Read(title, 0, oneByte[0]);
+                    stream.Read(bytes, 0, 1);
+                    byte[] title = new byte[bytes[0]];
+                    stream.Read(title, 0, bytes[0]);
                     ParseTag(title);
                 }
-                if (oneByte[0] == 0x02)
+                else
                 {
                     manager.DeactivateLast();
                 }
