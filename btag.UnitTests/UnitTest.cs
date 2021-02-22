@@ -10,6 +10,8 @@ using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using MongoDB.Driver;
+using MongoDB.Bson;
 
 namespace btag.UnitTests
 {
@@ -48,7 +50,7 @@ namespace btag.UnitTests
         [Ignore]
         public void TagGeneration(ref Tag tag)
         {
-            for (int x = 0; x < 100000; x++)
+            for (int x = 0; x < 10000; x++)
             {
                 Tag testTag = new Tag("test" + x);
                 Tag date = new Tag("date");
@@ -136,12 +138,12 @@ namespace btag.UnitTests
             Assert.IsTrue(manager.GetValueInt() == 100);
         }
 
-        [TestMethod]
+        /*[TestMethod]
         public void BtagVsJson()
         {
             string jsonStr = "";
             Dictionary<string, Dictionary<string, int>> tags = new Dictionary<string, Dictionary<string, int>>();
-            for (int i = 0; i != 100000; i++)
+            for (int i = 0; i != 10000; i++)
             {
                 Dictionary<string, int> things = new Dictionary<string, int>();
                 int date = 125825285;
@@ -175,6 +177,6 @@ namespace btag.UnitTests
 
             TestContext.Write("btag: " + btagStopWatch.ElapsedMilliseconds + "\njson: " + jsonStopwatch.ElapsedMilliseconds);
             Assert.IsTrue(btagStopWatch.ElapsedMilliseconds <= jsonStopwatch.ElapsedMilliseconds);
-        }
+        }*/
     }
 }
