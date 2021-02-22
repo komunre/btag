@@ -17,7 +17,7 @@ namespace btag
             stream = File.OpenRead(path);
         }
 
-        private bool ParseTag(byte[] title)
+        private void ParseTag(byte[] title)
         {
             Tag newTag = new Tag(Encoding.Default.GetString(title));
             stream.Read(bytes, 0, 1);
@@ -29,7 +29,6 @@ namespace btag
                 stream.Read(newTag.value, 0, size);
             }
             manager.AddChildToLast(newTag);
-            return true;
         }
 
         /// <summary>
