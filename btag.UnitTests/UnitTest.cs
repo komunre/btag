@@ -10,8 +10,6 @@ using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
-using MongoDB.Driver;
-using MongoDB.Bson;
 
 namespace btag.UnitTests
 {
