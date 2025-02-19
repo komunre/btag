@@ -160,9 +160,9 @@ pub struct TagData<T> {
     tag_id: u64,
     tag_total_size: u64,
     tag_name: u64,
-    tag_depth_level: u64,
+    tag_depth: u64,
     tag_parents_size: u64,
-    tag_parents: Vec<AddressList>,
+    tag_parents: AddressList,
     tag_data_type: u8,
     tag_data_size: u64,
     tag_data: T
@@ -173,9 +173,9 @@ impl<T> TagData<T> {
         tag_id: u64,
         tag_total_size: u64,
         tag_name: u64,
-        tag_depth_level: u64,
+        tag_depth: u64,
         tag_parents_size: u64,
-        tag_parents: Vec<AddressList>,
+        tag_parents: AddressList,
         tag_data_type: u8,
         tag_data_size: u64,
         tag_data: T,
@@ -184,7 +184,7 @@ impl<T> TagData<T> {
             tag_id,
             tag_total_size,
             tag_name,
-            tag_depth_level,
+            tag_depth,
             tag_parents_size,
             tag_parents,
             tag_data_type,
@@ -431,7 +431,7 @@ impl DatabaseReader {
         let tag_id = DatabaseReader::read_u64_from_slice(&buf[0..8]);
         let tag_total_size = DatabaseReader::read_u64_from_slice(&buf[8..16]);
         let tag_name = DatabaseReader::read_u64_from_slice(&buf[16..24]);
-        let tag_depth_level = DatabaseReader::read_u64_from_slice(&buf[24..32]);
+        let tag_depth = DatabaseReader::read_u64_from_slice(&buf[24..32]);
         let tag_parents_size = DatabaseReader::read_u64_from_slice(&buf[32..40]);
 
         // skip parents
@@ -486,16 +486,38 @@ impl DatabaseReader {
             tag_id,
             tag_total_size,
             tag_name,
-            tag_depth_level,
+            tag_depth,
             tag_parents_size,
-            tag_parents: Vec::new(),
+            tag_parents: AddressList {
+                address_count: tag_depth,
+                array: Vec::with_capacity(tag_depth.try_into().unwrap())
+            },
             tag_data_type,
             tag_data_size,
             tag_data
         })
     }
 
-    pub fn read_parents(&mut self, index_table: IndexTable, tag_index: TagIndex, tag_data: &mut TagData<TagType>) {
-        todo!()
+    pub fn read_parents(&mut self, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<(), DatabaseReadErrorKind> {
+        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap()) {
+            return Err(DatabaseReadErrorKind::IOError);
+        }
+
+        let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
+        for _ in 0..parent_count {
+            let mut buf = [0;16];
+            if let Err(_) = self.read_to_buf(&mut buf) { 
+                return Err(DatabaseReadErrorKind::IOError);
+            }
+
+            tag_data.tag_parents.array.push(
+                AddressEntry {
+                    name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
+                    address: DatabaseReader::read_u64_from_slice(&buf[8..16])
+                }
+            )
+        }
+
+        Ok(())
     }
 }
