@@ -246,6 +246,14 @@ impl DatabaseReader {
         u8::from_le_bytes(slice.try_into().unwrap())
     }*/
 
+    pub fn seek(&mut self, offset: i64) -> Result<(), DatabaseReadErrorKind> {
+        if let Err(_) = self.file_reader.seek_relative(offset) {
+            return Err(DatabaseReadErrorKind::IOError);
+        }
+        self.current_index_table_offset -= offset;
+        Ok(())
+    }
+
     pub fn read_to_buf(&mut self, buf: &mut [u8]) -> Result<(), std::io::Error> {
         let r = self.file_reader.read_exact(buf);
         self.advance_seeker(buf.len().try_into().unwrap());
@@ -321,9 +329,7 @@ impl DatabaseReader {
     }
 
     pub fn read_names_index(&mut self, index_table: IndexTable) -> Result<NamesIndexTable, DatabaseReadErrorKind> {
-        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_names_offset).unwrap()) {
-            return Err(DatabaseReadErrorKind::IOError);
-        }
+        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_names_offset).unwrap())?;
         let size = index_table.index_table_names_size;
         
         let mut i: u32 = 0;
@@ -364,9 +370,7 @@ impl DatabaseReader {
     }
 
     pub fn read_tags_index(&mut self, index_table: IndexTable) -> Result<DataIndexTable, DatabaseReadErrorKind> {
-        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_tags_offset).unwrap()) {
-            return Err(DatabaseReadErrorKind::IOError);
-        }
+        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_tags_offset).unwrap())?;
         let size = index_table.index_table_tags_size;
 
         let mut tags: Vec<TagIndex> = Vec::new();
@@ -420,13 +424,13 @@ impl DatabaseReader {
     }
 
     pub fn read_tag_data(&mut self, tag_index: TagIndex) -> Result<TagData<TagType>, DatabaseReadErrorKind> {
-        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset).unwrap()) {
-            return Err(DatabaseReadErrorKind::IOError);
-        }
+        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset).unwrap())?;
 
         // read basic data
         let mut buf = [0;40];
-        self.read_to_buf(&mut buf);
+        if let Err(_) = self.read_to_buf(&mut buf) {
+            return Err(DatabaseReadErrorKind::IOError);
+        }
 
         let tag_id = DatabaseReader::read_u64_from_slice(&buf[0..8]);
         let tag_total_size = DatabaseReader::read_u64_from_slice(&buf[8..16]);
@@ -435,17 +439,21 @@ impl DatabaseReader {
         let tag_parents_size = DatabaseReader::read_u64_from_slice(&buf[32..40]);
 
         // skip parents
-        self.file_reader.seek_relative(tag_parents_size.try_into().unwrap());
+        self.seek(tag_parents_size.try_into().unwrap())?;
         
         // read leftovers
         let mut buf = [0;9];
-        self.read_to_buf(&mut buf);
+        if let Err(_) = self.read_to_buf(&mut buf) {
+            return Err(DatabaseReadErrorKind::IOError);
+        }
 
         let tag_data_type = buf[0];
         let tag_data_size = DatabaseReader::read_u64_from_slice(&buf[1..9]);
 
         let mut buf = Vec::with_capacity(tag_data_size.try_into().unwrap());
-        self.read_to_buf(&mut buf);
+        if let Err(_) = self.read_to_buf(&mut buf) {
+            return Err(DatabaseReadErrorKind::IOError);
+        }
 
         let tag_data = match tag_data_type {
             0 => TagType::Integer(DatabaseReader::read_u64_from_slice(&buf[0..8])),
@@ -499,9 +507,7 @@ impl DatabaseReader {
     }
 
     pub fn read_parents(&mut self, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<(), DatabaseReadErrorKind> {
-        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap()) {
-            return Err(DatabaseReadErrorKind::IOError);
-        }
+        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap())?;
 
         let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
         for _ in 0..parent_count {
