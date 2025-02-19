@@ -341,11 +341,9 @@ impl DatabaseReader {
 
         let mut tags: Vec<TagIndex> = Vec::new();
 
-        let mut i = 0;
-
         let tags_count = size / 32;
 
-        for i in 0..tags_count {
+        for _ in 0..tags_count {
             let mut buf = [0; 24];
             if let Err(_) = self.file_reader.read_exact(&mut buf) {
                 return Err(
