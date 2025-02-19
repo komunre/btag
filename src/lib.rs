@@ -131,6 +131,17 @@ impl TagIndexTable {
     }
 }
 
+pub enum TagType { // Suboptimal?
+    AddressEntry(AddressEntry),
+    AddressList(AddressList),
+    ValueReference(ValueReference),
+    Integer(u64),
+    Float(f32),
+    Double(f64),
+    Text(String),
+    Char(String),
+}
+
 pub struct AddressEntry {
     name: u64,
     address: u64,
@@ -154,7 +165,7 @@ pub struct TagData<T> {
     tag_parents: Vec<AddressList>,
     tag_data_type: u8,
     tag_data_size: u64,
-    tag_data: Vec<T>
+    tag_data: T
 }
 
 impl<T> TagData<T> {
@@ -167,7 +178,7 @@ impl<T> TagData<T> {
         tag_parents: Vec<AddressList>,
         tag_data_type: u8,
         tag_data_size: u64,
-        tag_data: Vec<T>,
+        tag_data: T,
     ) -> Self {
         TagData {
             tag_id,
@@ -222,8 +233,27 @@ impl DatabaseReader {
         u16::from_le_bytes(slice.try_into().unwrap())
     }
 
-    pub fn read_u8_from_slice(slice: &[u8]) -> u8 {
+    pub fn read_f64_from_slice(slice: &[u8]) -> f64 {
+        f64::from_le_bytes(slice.try_into().unwrap())
+    }
+
+    pub fn read_f32_from_slice(slice: &[u8]) -> f32 {
+        f32::from_le_bytes(slice.try_into().unwrap())
+    }
+
+    // Redundant
+    /*pub fn read_u8_from_slice(slice: &[u8]) -> u8 {
         u8::from_le_bytes(slice.try_into().unwrap())
+    }*/
+
+    pub fn read_to_buf(&mut self, buf: &mut [u8]) -> Result<(), std::io::Error> {
+        let r = self.file_reader.read_exact(buf);
+        self.advance_seeker(buf.len().try_into().unwrap());
+        r
+    }
+
+    pub fn advance_seeker(&mut self, advance: i64) {
+        self.current_index_table_offset -= advance;
     }
     
 
@@ -233,7 +263,7 @@ impl DatabaseReader {
         }
         
         let mut cluster_data: [u8;50] = [0;50];
-        if let Err(_) = self.file_reader.read_exact(&mut cluster_data) {
+        if let Err(_) = self.read_to_buf(&mut cluster_data) {
             return Err(DatabaseReadErrorKind::ClusterValidity)
         }
         let validity = match String::from_utf8(cluster_data[0..4].to_vec()) { // 0-3
@@ -268,7 +298,7 @@ impl DatabaseReader {
         }
 
         let mut table_data: [u8; 40] = [0;40];
-        if let Err(_) = self.file_reader.read_exact(&mut table_data) {
+        if let Err(_) = self.read_to_buf(&mut table_data) {
             return Err(DatabaseReadErrorKind::IndexTableValidity)
         }
         let index_table_size = DatabaseReader::read_u64_from_slice(&table_data[0..8]);
@@ -291,7 +321,7 @@ impl DatabaseReader {
     }
 
     pub fn read_names_index(&mut self, index_table: IndexTable) -> Result<NamesIndexTable, DatabaseReadErrorKind> {
-        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + (index_table.index_table_names_offset as i64)) {
+        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_names_offset).unwrap()) {
             return Err(DatabaseReadErrorKind::IOError);
         }
         let size = index_table.index_table_names_size;
@@ -302,13 +332,13 @@ impl DatabaseReader {
 
         while i < size {
             let mut name_data = [0;8];
-            if let Err(_) = self.file_reader.read(&mut name_data) {
+            if let Err(_) = self.read_to_buf(&mut name_data) {
                 return Err(DatabaseReadErrorKind::IOError);
             }
             let name = DatabaseReader::read_u64_from_slice(&name_data[0..8]);
             let name_string_size = DatabaseReader::read_u16_from_slice(&name_data[8..10]);
             let mut name_string = Vec::with_capacity(name_string_size.into());
-            if let Err(_) = self.file_reader.read(&mut name_string) {
+            if let Err(_) = self.read_to_buf(&mut name_string) {
                 return Err(DatabaseReadErrorKind::IOError);
             }
 
@@ -334,7 +364,7 @@ impl DatabaseReader {
     }
 
     pub fn read_tags_index(&mut self, index_table: IndexTable) -> Result<DataIndexTable, DatabaseReadErrorKind> {
-        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + (index_table.index_table_tags_offset as i64)) {
+        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_tags_offset).unwrap()) {
             return Err(DatabaseReadErrorKind::IOError);
         }
         let size = index_table.index_table_tags_size;
@@ -345,7 +375,7 @@ impl DatabaseReader {
 
         for _ in 0..tags_count {
             let mut buf = [0; 24];
-            if let Err(_) = self.file_reader.read_exact(&mut buf) {
+            if let Err(_) = self.read_to_buf(&mut buf) {
                 return Err(
                     DatabaseReadErrorKind::IOError
                 );
@@ -357,19 +387,19 @@ impl DatabaseReader {
 
             
             let full_path_size = depth * 8;
-            let mut full_path: Vec<u64> = Vec::with_capacity(depth as usize);
-            let mut buf = Vec::with_capacity(full_path_size as usize);
+            let mut full_path: Vec<u64> = Vec::with_capacity(depth.try_into().unwrap());
+            let mut buf = Vec::with_capacity(full_path_size.try_into().unwrap());
 
-            if let Err(_) = self.file_reader.read_exact(&mut buf) {
+            if let Err(_) = self.read_to_buf(&mut buf) {
                 return Err(
                     DatabaseReadErrorKind::IOError
                 );
             }
 
             for j in 0..depth {
-                let start = (j * 8) as usize;
-                let end = (j * 8 + 8) as usize;
-                full_path[j as usize] = DatabaseReader::read_u64_from_slice(&buf[start..end])
+                let start = (j * 8).try_into().unwrap();
+                let end = (j * 8 + 8).try_into().unwrap();
+                full_path[<u64 as TryInto<usize>>::try_into(j).unwrap()] = DatabaseReader::read_u64_from_slice(&buf[start..end])
             }
             let offset = DatabaseReader::read_u64_from_slice(&buf[24..32]);
 
@@ -387,5 +417,85 @@ impl DatabaseReader {
         Ok(DataIndexTable {
             tags
         })
+    }
+
+    pub fn read_tag_data(&mut self, tag_index: TagIndex) -> Result<TagData<TagType>, DatabaseReadErrorKind> {
+        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset).unwrap()) {
+            return Err(DatabaseReadErrorKind::IOError);
+        }
+
+        // read basic data
+        let mut buf = [0;40];
+        self.read_to_buf(&mut buf);
+
+        let tag_id = DatabaseReader::read_u64_from_slice(&buf[0..8]);
+        let tag_total_size = DatabaseReader::read_u64_from_slice(&buf[8..16]);
+        let tag_name = DatabaseReader::read_u64_from_slice(&buf[16..24]);
+        let tag_depth_level = DatabaseReader::read_u64_from_slice(&buf[24..32]);
+        let tag_parents_size = DatabaseReader::read_u64_from_slice(&buf[32..40]);
+
+        // skip parents
+        self.file_reader.seek_relative(tag_parents_size.try_into().unwrap());
+        
+        // read leftovers
+        let mut buf = [0;9];
+        self.read_to_buf(&mut buf);
+
+        let tag_data_type = buf[0];
+        let tag_data_size = DatabaseReader::read_u64_from_slice(&buf[1..9]);
+
+        let mut buf = Vec::with_capacity(tag_data_size.try_into().unwrap());
+        self.read_to_buf(&mut buf);
+
+        let tag_data = match tag_data_type {
+            0 => TagType::Integer(DatabaseReader::read_u64_from_slice(&buf[0..8])),
+            1 => TagType::Float(DatabaseReader::read_f32_from_slice(&buf[0..4])),
+            2 => TagType::Double(DatabaseReader::read_f64_from_slice(&buf[0..8])),
+            3 => TagType::AddressEntry(AddressEntry { name: DatabaseReader::read_u64_from_slice(&buf[0..8]), address: DatabaseReader::read_u64_from_slice(&buf[8..16]) }),
+            4 => {
+                let count = DatabaseReader::read_u64_from_slice(&buf[0..8]);
+                //let size = count * 16;
+
+                let mut entries = Vec::<AddressEntry>::with_capacity(count.try_into().unwrap());
+
+                for i in 0..count {
+                    let start = (i * 16).try_into().unwrap();
+                    let end = start + 16;
+                    let name = DatabaseReader::read_u64_from_slice(&buf[start..end]);
+                    
+                    let start = end;
+                    let end = start + 16;
+                    let address = DatabaseReader::read_u64_from_slice(&buf[start..end]);
+
+                    entries.push(AddressEntry {
+                        name,
+                        address
+                    });
+                }
+
+                TagType::AddressList(AddressList {
+                    address_count: count,
+                    array: entries
+                })
+            }
+            5 => TagType::Text(String::from_utf8(buf[0..tag_data_size.try_into().unwrap()].to_vec()).unwrap()),
+            _ => todo!()
+        };
+
+        Ok(TagData::<TagType> {
+            tag_id,
+            tag_total_size,
+            tag_name,
+            tag_depth_level,
+            tag_parents_size,
+            tag_parents: Vec::new(),
+            tag_data_type,
+            tag_data_size,
+            tag_data
+        })
+    }
+
+    pub fn read_parents(&mut self, index_table: IndexTable, tag_index: TagIndex, tag_data: &mut TagData<TagType>) {
+        todo!()
     }
 }
