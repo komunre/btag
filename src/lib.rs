@@ -520,4 +520,31 @@ impl DatabaseReader {
 
         Ok(())
     }
+
+    pub fn find_parents_with_name(&mut self, name: u64, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<Vec<AddressEntry>, DatabaseReadErrorKind> {
+        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap()) {
+            return Err(DatabaseReadErrorKind::IOError);
+        }
+
+        let mut results: Vec<AddressEntry> = Vec::new();
+
+        let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
+        for _ in 0..parent_count {
+            let mut buf = [0;16];
+            if let Err(_) = self.read_to_buf(&mut buf) { 
+                return Err(DatabaseReadErrorKind::IOError);
+            }
+
+            let entry = AddressEntry {
+                name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
+                address: DatabaseReader::read_u64_from_slice(&buf[8..16])
+            };
+
+            if entry.name == name {
+                results.push(entry);
+            }
+        }
+
+        Ok(results)
+    }
 }
