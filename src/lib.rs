@@ -528,9 +528,7 @@ impl DatabaseReader {
     }
 
     pub fn find_parents_with_name(&mut self, name: u64, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<Vec<AddressEntry>, DatabaseReadErrorKind> {
-        if let Err(_) = self.file_reader.seek_relative(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap()) {
-            return Err(DatabaseReadErrorKind::IOError);
-        }
+        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap())?;
 
         let mut results: Vec<AddressEntry> = Vec::new();
 
