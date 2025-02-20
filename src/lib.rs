@@ -247,11 +247,11 @@ pub enum DatabaseReadErrorKind {
     IOError,
 }
 
-#[derive(Clone, Copy)]
 pub enum QueryEntry {
     Name(u64),
     ArrayIndex(u64),
-    Id(u64)
+    Id(u64),
+    Conditional(Box<dyn Fn(TagData<TagType>) -> bool>)
 }
 
 pub enum SearchResult {
@@ -567,99 +567,102 @@ impl DatabaseReader {
         Ok(())
     }
 
-    pub fn find_upstream(&mut self, query: Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> { // Return all upstream matches in form of AddressList, representing full sequence of search
-        let mut query_copy = query.clone();
-        let result = self.recursive_upstream_search(&mut query_copy, &query, Vec::new(), offset, tag_data);
+    pub fn find_upstream(&mut self, query: &mut Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> { // Return all upstream matches in form of AddressList, representing full sequence of search
+        let result = self.recursive_upstream_search(query, Vec::new(), offset, tag_data);
 
         return result;
     }
 
-    fn recursive_upstream_search(&mut self, query: &mut Vec<QueryEntry>, query_original: &Vec<QueryEntry>, mut hierarchy: Vec<AddressEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> {
+    fn recursive_upstream_search(&mut self, query: &mut Vec<QueryEntry>, mut hierarchy: Vec<AddressEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset + 41).unwrap())?;
         
         let mut valid_search_paths: Vec<AddressEntry> = Vec::new();
         
         let parent_count = tag_data.tag_parents_size / 16;
-        let q = query.pop();
-        if let Some(q) = q {
-            let mut matches: Vec<AddressList> = Vec::new();
+        let q = match query.pop() {
+            None => { // Query has ended. We found an entire path, therefore it's a Match.
+                return Ok(SearchResult::Match(hierarchy));
+            }
+            Some(v) => v
+        };
 
-            // Check every parent to find those that match the condition 
-            for i in 0..parent_count {
-                let mut buf = [0;16];
-                if let Err(_) = self.read_to_buf(&mut buf) { 
-                    return Err(DatabaseReadErrorKind::IOError);
-                }
+        let mut matches: Vec<AddressList> = Vec::new();
 
-                let entry = AddressEntry {
-                    name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
-                    address: DatabaseReader::read_u64_from_slice(&buf[8..16])
-                };
-
-                match q {
-                    QueryEntry::Id(id) => {
-                        let tag_data = self.read_tag_data(entry.address);
-                        if let Ok(tag_data) = tag_data {
-                            if tag_data.tag_id == id {
-                                valid_search_paths.push(entry);
-                            }
-                        }
-                    }
-
-                    QueryEntry::Name(name) => {
-                        if name == entry.name {
-                            valid_search_paths.push(entry);
-                        }
-                    }
-
-                    QueryEntry::ArrayIndex(index) => {
-                        if index == i {
-                            valid_search_paths.push(entry);
-                        }
-                    }
-                }
+        // Check every parent to find those that match the condition 
+        for i in 0..parent_count {
+            let mut buf = [0;16];
+            if let Err(_) = self.read_to_buf(&mut buf) { 
+                return Err(DatabaseReadErrorKind::IOError);
             }
 
-            // Recursively run on every parent, to either find a Match or None, later returning Found that contains all results of Match
-            for parent in valid_search_paths {
-                hierarchy.push(parent);
-                let tag_data = match self.read_tag_data(parent.address) {
-                    Ok(v) => v,
-                    Err(_) => {
+            let entry = AddressEntry {
+                name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
+                address: DatabaseReader::read_u64_from_slice(&buf[8..16])
+            };
+
+            match q {
+                QueryEntry::Id(id) => {
+                    let tag_data = self.read_tag_data(entry.address);
+                    if let Ok(tag_data) = tag_data {
+                        if tag_data.tag_id == id {
+                            valid_search_paths.push(entry);
+                        }
+                    }
+                }
+
+                QueryEntry::Name(name) => {
+                    if name == entry.name {
+                        valid_search_paths.push(entry);
+                    }
+                }
+
+                QueryEntry::ArrayIndex(index) => {
+                    if index == i {
+                        valid_search_paths.push(entry);
+                    }
+                }
+
+                QueryEntry::Conditional(ref predicate) => {
+                    todo!()
+                }
+            }
+        }
+
+        // Recursively run on every parent, to either find a Match or None, later returning Found that contains all results of Match
+        for parent in valid_search_paths {
+            hierarchy.push(parent);
+            let tag_data = match self.read_tag_data(parent.address) {
+                Ok(v) => v,
+                Err(_) => {
+                    continue;
+                }
+            };
+            let r = self.recursive_upstream_search(query, hierarchy.clone(), parent.address, &tag_data);
+            if let Ok(r) = r {
+                match r {
+                    SearchResult::Match(m) => {
+                        matches.push(AddressList {
+                            address_count: m.iter().count().try_into().unwrap(),
+                            array: m,
+                        })
+                    }
+                    SearchResult::Found(list) => { // Potentially significant performance impact. We should consider better implementations.
+                        let mut list = list.iter().take_while(|x| !matches.contains(x)).map(|x| x.clone()).collect();
+                        matches.append(&mut list);
+                        return Ok(SearchResult::Found(matches));
+                    }
+                    SearchResult::None => {
                         continue;
                     }
-                };
-                let r = self.recursive_upstream_search(query, query_original, hierarchy.clone(), parent.address, &tag_data);
-                if let Ok(r) = r {
-                    match r {
-                        SearchResult::Match(m) => {
-                            matches.push(AddressList {
-                                address_count: m.iter().count().try_into().unwrap(),
-                                array: m,
-                            })
-                        }
-                        SearchResult::Found(list) => { // Potentially significant performance impact. We should consider better implementations.
-                            let mut list = list.iter().take_while(|x| !matches.contains(x)).map(|x| x.clone()).collect();
-                            matches.append(&mut list);
-                            return Ok(SearchResult::Found(matches));
-                        }
-                        SearchResult::None => {
-                            continue;
-                        }
-                    }
                 }
-                hierarchy.pop();
             }
+            hierarchy.pop();
+        }
 
-            if matches.is_empty() {
-                return Ok(SearchResult::None);
-            }
-            // Recursively return all matches
-            return Ok(SearchResult::Found(matches))
+        if matches.is_empty() {
+            return Ok(SearchResult::None);
         }
-        // Query has ended. We found an entire path, therefore it's a Match.
-        else {
-            return Ok(SearchResult::Match(hierarchy));
-        }
+        // Recursively return all matches
+        return Ok(SearchResult::Found(matches))
     }
 }
