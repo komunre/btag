@@ -220,6 +220,12 @@ pub enum DatabaseReadErrorKind {
     IOError,
 }
 
+pub enum QueryEntry {
+    Name(u64),
+    ArrayIndex(u64),
+    Id(u64)
+}
+
 impl DatabaseReader {
     pub fn read_u64_from_slice(slice: &[u8]) -> u64 {
         u64::from_le_bytes(slice.try_into().unwrap())
@@ -527,42 +533,62 @@ impl DatabaseReader {
         Ok(())
     }
 
-    pub fn find_parents(&mut self, name: Option<u64>, array_index: Option<u64>, id: Option<u64>, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<Vec<AddressEntry>, DatabaseReadErrorKind> {
-        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap())?;
+    pub fn find_upstream(&mut self, query: &mut Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<Vec<AddressEntry>, DatabaseReadErrorKind> {
+        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset + 41).unwrap())?;
 
         let mut results: Vec<AddressEntry> = Vec::new();
 
         let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
-        for i in 0..parent_count {
-            let mut perform_push = false;
+        let q = query.pop();
+        if let Some(q) = q {
+            for i in 0..parent_count {
+                let mut perform_push = false;
 
-            let mut buf = [0;16];
-            if let Err(_) = self.read_to_buf(&mut buf) { 
-                return Err(DatabaseReadErrorKind::IOError);
-            }
+                let mut buf = [0;16];
+                if let Err(_) = self.read_to_buf(&mut buf) { 
+                    return Err(DatabaseReadErrorKind::IOError);
+                }
 
-            let entry = AddressEntry {
-                name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
-                address: DatabaseReader::read_u64_from_slice(&buf[8..16])
-            };
+                let entry = AddressEntry {
+                    name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
+                    address: DatabaseReader::read_u64_from_slice(&buf[8..16])
+                };
 
-            // Condition set #1 - parent ID
-            if let Some(id) = id {
-                let tag_data = self.read_tag_data(entry.address);
-                if let Ok(tag_data) = tag_data {
-                    if tag_data.tag_id == id {
-                        perform_push = true;
+                match q {
+                    QueryEntry::Id(id) => {
+                        // Condition set #1 - parent ID
+                        let tag_data = self.read_tag_data(entry.address);
+                        if let Ok(tag_data) = tag_data {
+                            if tag_data.tag_id == id {
+                                results.push(entry);
+                            }
+                        }
+                    }
+
+                    QueryEntry::Name(name) => {
+                        // Condition set #2 - parent name OR/AND array index
+                        if name == entry.name {
+                            results.push(entry);
+                        }
+                    }
+
+                    QueryEntry::ArrayIndex(index) => {
+                        if index == i {
+                            results.push(entry);
+                        }
                     }
                 }
             }
 
-            // Condition set #2 - parent name OR/AND array index
-            if name.map_or(true, |v| v == entry.name) && array_index.map_or(true, |v| v == i) {
-                perform_push = true;
-            }
+            for parent in &results {
+                let r = self.find_upstream(query, parent.address, tag_data);
+                if let Ok(r) = r {
+                    if r.is_empty() {
+                        continue;
+                    }
 
-            if perform_push {
-                results.push(entry);
+                    // TODO: Merge results.
+                }
             }
         }
 
