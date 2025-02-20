@@ -556,7 +556,6 @@ impl DatabaseReader {
 
                 match q {
                     QueryEntry::Id(id) => {
-                        // Condition set #1 - parent ID
                         let tag_data = self.read_tag_data(entry.address);
                         if let Ok(tag_data) = tag_data {
                             if tag_data.tag_id == id {
@@ -566,7 +565,6 @@ impl DatabaseReader {
                     }
 
                     QueryEntry::Name(name) => {
-                        // Condition set #2 - parent name OR/AND array index
                         if name == entry.name {
                             results.push(entry);
                         }
