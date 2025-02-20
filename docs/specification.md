@@ -92,9 +92,9 @@ PRELOAD NAMES - load all name indexes
 ### Generic
 `:<num>` get nth match for query
 `..` query parent AddressLisst
-`..$` query parent with certain parameter like `name` or `%property=value`
+`..$` query parent with conditional
+`...$` query every node upstream (parents of parents) that meets conditional
 `.-` backtrace query
-`:has()` alias to parent of query. `*:has(wallet.euro).%name` will return name of every entry that has `wallet` with `euro`.
 
 
 #### Properties
