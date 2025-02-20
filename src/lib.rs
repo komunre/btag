@@ -251,7 +251,8 @@ pub enum QueryEntry {
     Name(u64),
     ArrayIndex(u64),
     Id(u64),
-    Conditional(Box<dyn Fn(TagData<TagType>) -> bool>)
+    Conditional(Box<dyn Fn(TagData<TagType>) -> bool>),
+    UpstreamConditional(Box<dyn Fn(TagData<TagType>) -> bool>)
 }
 
 pub enum SearchResult {
@@ -624,6 +625,10 @@ impl DatabaseReader {
 
                 QueryEntry::Conditional(ref predicate) => {
                     todo!()
+                }
+
+                QueryEntry::UpstreamConditional(ref _predicate) => {
+                    valid_search_paths.push(entry);
                 }
             }
         }
