@@ -131,7 +131,7 @@ impl TagIndexTable {
     }
 }
 
-pub enum TagType { // Suboptimal?
+pub enum TagType {
     AddressEntry(AddressEntry),
     AddressList(AddressList),
     ValueReference(ValueReference),
@@ -142,16 +142,42 @@ pub enum TagType { // Suboptimal?
     Char(String),
 }
 
+// Represetns tag address by which it can be accessed
+// address is equal to offset in byte stream from index table]
+// Reference docs/specification.md for further information.
+#[derive(Clone, Copy)]
 pub struct AddressEntry {
     name: u64,
     address: u64,
 }
 
+impl PartialEq for AddressEntry {
+    fn eq(&self, other: &Self) -> bool {
+        return self.name == other.name && self.address == other.address;
+    }
+}
+
+#[derive(Clone)]
 pub struct AddressList { 
     address_count: u64,
     array: Vec<AddressEntry>
 }
 
+impl PartialEq for AddressList {
+    fn eq(&self, other: &Self) -> bool {
+        for i in self.array.iter().zip(&other.array) {
+            if *i.0 != *i.1 {
+                return false;
+            }
+        }
+        return self.address_count == other.address_count;
+    }
+}
+
+// Used to reference a specific point in byte stream, where value is stored.
+// May reference any type, not just tags.
+// Reference docs/specification.md for further information.
+#[derive(Clone, Copy)]
 pub struct ValueReference {
     address: u64,
 }
@@ -211,6 +237,7 @@ pub struct DatabaseReader {
     current_index_table_offset: i64,
 }
 
+#[derive(Debug)]
 pub enum DatabaseReadErrorKind {
     ClusterValidity,
     ClusterIncompatibleVersion,
@@ -220,10 +247,17 @@ pub enum DatabaseReadErrorKind {
     IOError,
 }
 
+#[derive(Clone, Copy)]
 pub enum QueryEntry {
     Name(u64),
     ArrayIndex(u64),
     Id(u64)
+}
+
+pub enum SearchResult {
+    Found(Vec<AddressList>),
+    Match(Vec<AddressEntry>),
+    None
 }
 
 impl DatabaseReader {
@@ -533,17 +567,25 @@ impl DatabaseReader {
         Ok(())
     }
 
-    pub fn find_upstream(&mut self, query: &mut Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<Vec<AddressEntry>, DatabaseReadErrorKind> {
+    pub fn find_upstream(&mut self, query: Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> { // Return all upstream matches in form of AddressList, representing full sequence of search
+        let mut query_copy = query.clone();
+        let result = self.recursive_upstream_search(&mut query_copy, &query, Vec::new(), offset, tag_data);
+
+        return result;
+    }
+
+    fn recursive_upstream_search(&mut self, query: &mut Vec<QueryEntry>, query_original: &Vec<QueryEntry>, mut hierarchy: Vec<AddressEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset + 41).unwrap())?;
-
-        let mut results: Vec<AddressEntry> = Vec::new();
-
-        let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
+        
+        let mut valid_search_paths: Vec<AddressEntry> = Vec::new();
+        
+        let parent_count = tag_data.tag_parents_size / 16;
         let q = query.pop();
         if let Some(q) = q {
-            for i in 0..parent_count {
-                let mut perform_push = false;
+            let mut matches: Vec<AddressList> = Vec::new();
 
+            // Check every parent to find those that match the condition 
+            for i in 0..parent_count {
                 let mut buf = [0;16];
                 if let Err(_) = self.read_to_buf(&mut buf) { 
                     return Err(DatabaseReadErrorKind::IOError);
@@ -559,37 +601,65 @@ impl DatabaseReader {
                         let tag_data = self.read_tag_data(entry.address);
                         if let Ok(tag_data) = tag_data {
                             if tag_data.tag_id == id {
-                                results.push(entry);
+                                valid_search_paths.push(entry);
                             }
                         }
                     }
 
                     QueryEntry::Name(name) => {
                         if name == entry.name {
-                            results.push(entry);
+                            valid_search_paths.push(entry);
                         }
                     }
 
                     QueryEntry::ArrayIndex(index) => {
                         if index == i {
-                            results.push(entry);
+                            valid_search_paths.push(entry);
                         }
                     }
                 }
             }
 
-            for parent in &results {
-                let r = self.find_upstream(query, parent.address, tag_data);
-                if let Ok(r) = r {
-                    if r.is_empty() {
+            // Recursively run on every parent, to either find a Match or None, later returning Found that contains all results of Match
+            for parent in valid_search_paths {
+                hierarchy.push(parent);
+                let tag_data = match self.read_tag_data(parent.address) {
+                    Ok(v) => v,
+                    Err(_) => {
                         continue;
                     }
-
-                    // TODO: Merge results.
+                };
+                let r = self.recursive_upstream_search(query, query_original, hierarchy.clone(), parent.address, &tag_data);
+                if let Ok(r) = r {
+                    match r {
+                        SearchResult::Match(m) => {
+                            matches.push(AddressList {
+                                address_count: m.iter().count().try_into().unwrap(),
+                                array: m,
+                            })
+                        }
+                        SearchResult::Found(list) => { // Potentially significant performance impact. We should consider better implementations.
+                            let mut list = list.iter().take_while(|x| !matches.contains(x)).map(|x| x.clone()).collect();
+                            matches.append(&mut list);
+                            return Ok(SearchResult::Found(matches));
+                        }
+                        SearchResult::None => {
+                            continue;
+                        }
+                    }
                 }
+                hierarchy.pop();
             }
-        }
 
-        Ok(results)
+            if matches.is_empty() {
+                return Ok(SearchResult::None);
+            }
+            // Recursively return all matches
+            return Ok(SearchResult::Found(matches))
+        }
+        // Query has ended. We found an entire path, therefore it's a Match.
+        else {
+            return Ok(SearchResult::Match(hierarchy));
+        }
     }
 }
