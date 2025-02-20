@@ -423,8 +423,8 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_tag_data(&mut self, tag_index: TagIndex) -> Result<TagData<TagType>, DatabaseReadErrorKind> {
-        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset).unwrap())?;
+    pub fn read_tag_data(&mut self, offset: u64) -> Result<TagData<TagType>, DatabaseReadErrorKind> {
+        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset).unwrap())?;
 
         // read basic data
         let mut buf = [0;40];
@@ -527,13 +527,15 @@ impl DatabaseReader {
         Ok(())
     }
 
-    pub fn find_parents_with_name(&mut self, name: u64, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<Vec<AddressEntry>, DatabaseReadErrorKind> {
+    pub fn find_parents(&mut self, name: Option<u64>, array_index: Option<u64>, id: Option<u64>, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<Vec<AddressEntry>, DatabaseReadErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap())?;
 
         let mut results: Vec<AddressEntry> = Vec::new();
 
         let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
-        for _ in 0..parent_count {
+        for i in 0..parent_count {
+            let mut perform_push = false;
+
             let mut buf = [0;16];
             if let Err(_) = self.read_to_buf(&mut buf) { 
                 return Err(DatabaseReadErrorKind::IOError);
@@ -544,7 +546,22 @@ impl DatabaseReader {
                 address: DatabaseReader::read_u64_from_slice(&buf[8..16])
             };
 
-            if entry.name == name {
+            // Condition set #1 - parent ID
+            if let Some(id) = id {
+                let tag_data = self.read_tag_data(entry.address);
+                if let Ok(tag_data) = tag_data {
+                    if tag_data.tag_id == id {
+                        perform_push = true;
+                    }
+                }
+            }
+
+            // Condition set #2 - parent name OR/AND array index
+            if name.map_or(true, |v| v == entry.name) && array_index.map_or(true, |v| v == i) {
+                perform_push = true;
+            }
+
+            if perform_push {
                 results.push(entry);
             }
         }
