@@ -611,12 +611,11 @@ impl DatabaseReader {
                 QueryEntry::UpstreamConditional(ref predicate) => {
                     match self.read_tag_data(entry.address) {
                         Ok(data) => {
-                            if predicate(data) {
-                                valid_search_paths.push((entry, next_index));
+                            let mut next_index = next_index;
+                            if !predicate(data) {
+                                next_index -= 1;
                             }
-                            else {
-                                valid_search_paths.push((entry, next_index - 1));
-                            }
+                            valid_search_paths.push((entry, next_index));
                         }
                         Err(_) => {
                             continue;
