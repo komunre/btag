@@ -35,7 +35,7 @@ name_string(name_string_size)
 tag_id(u64)
 name(u64)
 depth(u64)
-full_path( [u64; depth+1] ) // For example: users.jason.wallet, where users is 0, jason is 9 and wallet is 2 - full_path equals to [0, 9, 2], allowing to quickly determine whether tag matches path requirements
+full_path( [u64; depth+1] ) // TODO: Redefine to accomodate multiple parents  // For example: users.jason.wallet, where users is 0, jason is 9 and wallet is 2 - full_path equals to [0, 9, 2], allowing to quickly determine whether tag matches path requirements
 offset(u64) **(from index table start)**
 <data_index_padding PADDING>
 <NEXT_ENTRY>
