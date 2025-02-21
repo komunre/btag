@@ -7,29 +7,10 @@ pub struct ClusterMetadata {
     text_encoding: u16,
     database_size: u64,
     last_name_index: u64,
+    names_index_padding: u32,
+    data_index_padding: u32,
+    tag_data_padding: u32,
     next_cluster: u64,
-}
-
-impl ClusterMetadata {
-    pub fn new(
-        version: u32, 
-        cluster_index: u64, 
-        index_table_offset: u64,
-        text_encoding: u16,
-        database_size: u64,
-        last_name_index: u64,
-        next_cluster: u64
-    ) -> Self {
-        ClusterMetadata {
-            version,
-            cluster_index,
-            index_table_offset,
-            text_encoding,
-            database_size,
-            last_name_index,
-            next_cluster
-        }
-    }
 }
 
 pub struct IndexTable {
@@ -39,26 +20,6 @@ pub struct IndexTable {
     index_table_tags_size: u32,
     index_table_tags_offset: u64,
     index_table_next_page_offset: u64,
-}
-
-impl IndexTable {
-    pub fn new(
-        index_table_size: u64,
-        index_table_names_size: u32,
-        index_table_names_offset: u64,
-        index_table_tags_size: u32,
-        index_table_tags_offset: u64,
-        index_table_next_page_offset: u64,
-    ) -> Self {
-        IndexTable {
-            index_table_size,
-            index_table_names_size,
-            index_table_names_offset,
-            index_table_tags_size,
-            index_table_tags_offset,
-            index_table_next_page_offset,
-        }
-    }
 }
 
 pub struct NameIndex {
@@ -311,7 +272,7 @@ impl DatabaseReader {
             return Err(DatabaseReadErrorKind::ClusterValidity)
         }
         
-        let mut cluster_data: [u8;50] = [0;50];
+        let mut cluster_data: [u8;62] = [0;62];
         if let Err(_) = self.read_to_buf(&mut cluster_data) {
             return Err(DatabaseReadErrorKind::ClusterValidity)
         }
@@ -328,7 +289,10 @@ impl DatabaseReader {
         let text_encoding = DatabaseReader::read_u16_from_slice(&cluster_data[24..26]);
         let database_size = DatabaseReader::read_u64_from_slice(&cluster_data[26..34]);
         let last_name_index = DatabaseReader::read_u64_from_slice(&cluster_data[34..42]);
-        let next_cluster = DatabaseReader::read_u64_from_slice(&cluster_data[42..50]);
+        let names_index_padding = DatabaseReader::read_u32_from_slice(&cluster_data[42..46]);
+        let data_index_padding = DatabaseReader::read_u32_from_slice(&cluster_data[46..50]);
+        let tag_data_padding = DatabaseReader::read_u32_from_slice(&cluster_data[50..54]);
+        let next_cluster = DatabaseReader::read_u64_from_slice(&cluster_data[54..62]);
         
         Ok(ClusterMetadata {
             version,
@@ -337,6 +301,9 @@ impl DatabaseReader {
             text_encoding,
             database_size,
             last_name_index,
+            names_index_padding,
+            data_index_padding,
+            tag_data_padding,
             next_cluster
         })
     }
@@ -369,7 +336,7 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_names_index(&mut self, index_table: IndexTable) -> Result<NamesIndexTable, DatabaseReadErrorKind> {
+    pub fn read_names_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<NamesIndexTable, DatabaseReadErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_names_offset).unwrap())?;
         let size = index_table.index_table_names_size;
         
@@ -402,7 +369,9 @@ impl DatabaseReader {
                 }
             );
 
-            i += 8 + u32::from(name_string_size);
+            self.seek(cluster_metadata.names_index_padding.into())?;
+
+            i += 8 + u32::from(name_string_size) + cluster_metadata.names_index_padding;
         }
 
         Ok(NamesIndexTable {
@@ -410,7 +379,7 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_tags_index(&mut self, index_table: IndexTable) -> Result<DataIndexTable, DatabaseReadErrorKind> {
+    pub fn read_tags_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<DataIndexTable, DatabaseReadErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_tags_offset).unwrap())?;
         let size = index_table.index_table_tags_size;
 
@@ -457,6 +426,8 @@ impl DatabaseReader {
                     offset
                 }
             );
+
+            self.seek(cluster_metadata.data_index_padding.into())?;
         }
 
         Ok(DataIndexTable {
