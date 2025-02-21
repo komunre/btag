@@ -130,6 +130,64 @@ Set tag value
 `#97 = #16` Make entry #97 equal to value of entry #16
 `#111 = &#87` Make entry #111 reference entry #87 (Address type)
 
+### Complex query concepts
+
+#### Request conditional name matches with many name duplicates, yet different hierarchy
+
+Imagine theoretical database structure of
+```
+a.b.c
+x.b.->c
+y.a.b.->c
+```
+We want to find `a.b` and `y.a.b` that have value or reference of value `c`, while ignoring `x.b`. There are multiple approaches to this problem.
+
+1. Depthless query
+---
+`a.b.c...$%name=b&(..%name=a)`
+
+This query finds all matches of `a.b.c`, then performs upstream search to find the node with a name of `b` that has parent with a name of `a`.
+This query will match both `a.b` and `y.a.b`.
+
+2. Depth query
+---
+`a.b.c..$%name=b&depth=1..$%name=a.b; a.b.c..$%name=b&depth=2..$%name=a.b`
+
+This is two queries combined into one.
+
+First query will find all matches of `a.b.c`, then find parents with a name of `b` and depth of `1`, which in this case can only match `a.b` and not `y.a.b`, then find parents of these parents with a name of `a`, and request child `b` from these parents. Full query in this database can match only `a.b`.
+
+Second query will do exactly the same, except `a.b.c` parent of `b` must have a depth of `2`, which only matches `y.a.b` and not `a.b.`
+
+
+#### Request node that has all children present
+Imagine theoretical database structure of
+```
+numbers.
+    1
+    2
+    3
+    4
+odd_digits.->
+    1
+    3
+even_digits.->
+    2
+    4
+ints.->
+    1
+    2
+    3
+    4
+```
+
+We want to find `numbers` but ignore `odd_digits` and `even_digits`.
+
+`(1..&2..&3..&4..)$peq`
+
+This query will perform 4 queries, finding parent of every digit, then compare it using conditional of `$peq` (partially equal), filtering only for results that are present in all queries, yielding `numbers` and `ints`.
+
+
 * * *
 ### Query
 
