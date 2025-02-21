@@ -582,6 +582,7 @@ impl DatabaseReader {
         let parent_count = tag_data.tag_parents_size / 16;
         if query_index == query.iter().count().try_into().unwrap() {
             // Query has ended. We found an entire path, therefore it's a Match.
+            return Ok(SearchResult::Match(hierarchy));
         }
         let q = &query[<i32 as TryInto<usize>>::try_into(query_index).unwrap()];
 
