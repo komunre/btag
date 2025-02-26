@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs::File, io::{BufRead, BufReader, Read, Seek, SeekFrom}};
 
+#[derive(Debug)]
 pub struct ClusterMetadata {
     version: u32,
     cluster_index: u64,
@@ -13,6 +14,7 @@ pub struct ClusterMetadata {
     next_cluster: u64,
 }
 
+#[derive(Debug)]
 pub struct IndexTable {
     index_table_size: u64,
     index_table_names_size: u32,
@@ -22,6 +24,7 @@ pub struct IndexTable {
     index_table_next_page_offset: u64,
 }
 
+#[derive(Debug)]
 pub struct NameIndex {
     name: u64,
     name_string_size: u16,
@@ -42,6 +45,7 @@ impl NameIndex {
     }
 }
 
+#[derive(Debug)]
 pub struct TagIndex {
     tag_id: u64,
     name: u64,
@@ -68,6 +72,7 @@ impl TagIndex {
     }
 }
 
+#[derive(Debug)]
 pub struct NamesIndexTable {
     names: Vec<NameIndex>,
 }
@@ -80,6 +85,7 @@ impl NamesIndexTable {
     }
 }
 
+#[derive(Debug)]
 pub struct TagIndexTable {
     tags: Vec<TagIndex>
 }
@@ -92,6 +98,7 @@ impl TagIndexTable {
     }
 }
 
+#[derive(Debug)]
 pub enum TagType {
     AddressEntry(AddressEntry),
     AddressList(AddressList),
@@ -106,7 +113,7 @@ pub enum TagType {
 // Represetns tag address by which it can be accessed
 // address is equal to offset in byte stream from index table]
 // Reference docs/specification.md for further information.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct AddressEntry {
     name: u64,
     address: u64,
@@ -118,7 +125,7 @@ impl PartialEq for AddressEntry {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AddressList { 
     address_count: u64,
     array: Vec<AddressEntry>
@@ -138,11 +145,12 @@ impl PartialEq for AddressList {
 // Used to reference a specific point in byte stream, where value is stored.
 // May reference any type, not just tags.
 // Reference docs/specification.md for further information.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ValueReference {
     address: u64,
 }
 
+#[derive(Debug)]
 pub struct TagData<T> {
     tag_id: u64,
     tag_total_size: u64,
@@ -166,6 +174,7 @@ pub struct BTag {
     tag_index_tables: HashMap<u64, TagIndexTable>,
 }
 
+#[derive(Debug)]
 pub struct DatabaseReader {
     database_file: File,
     file_reader: BufReader<File>,
@@ -191,6 +200,7 @@ pub enum QueryEntry {
     QueryConditional(Box<dyn Fn(Vec<(SearchResult, Option<Vec<TagData<TagType>>>)>) -> bool>),
 }
 
+#[derive(Debug)]
 pub enum SearchResult {
     Found(Vec<AddressList>),
     Match(Vec<AddressEntry>),
