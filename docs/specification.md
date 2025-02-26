@@ -128,15 +128,22 @@ Set tag value
 `#entry_id = &#entry_reference`
 
 #### **EXAMPLES**
-`Joey.wallet.euro = 1200` Set all entries of Joey.wallet.euro to 1200
-`( Joey.wallet.euro ):0 = 1200` Set first entry of Joey.wallet.euro to 1200
+`Joey.wallet.euro = 1200` Set all entries of `Joey.wallet.euro` to 1200
+`( Joey.wallet.euro ):0 = 1200` Set first entry of `Joey.wallet.euro` to 1200
 `( wallet.euro ):0.borrowers.*.amount = 13` Get first entry of `wallet.euro`, set every entry of `borrowers.*.amount` in `borrowers` AddressList in it to 13
 `( wallet.euro ):0.borrowers.1.amount = 13` Get first entry of `wallet.euro`, get second entry in `borrowers` AddressList and set it's `amount` entry to 13
-`wallet.euro = 1200` Set all entries of wallet.euro to 1200
+`wallet.euro = 1200` Set all entries of `wallet.euro` to 1200
 `#87.#97 = 1200` Set entry #97 child of #87 to value of 1200
 `#97 = 1200` Set entry #97 to value of 1200
 `#97 = #16` Make entry #97 equal to value of entry #16
 `#111 = &#87` Make entry #111 reference entry #87 (Address type)
+
+### Return changed
+Returns all tags that have been changed by the query
+`$%=%`
+
+#### **EXAMPLES**
+`(Joey.wallet.euro = 1200)$%=%` sets `Joey.wallet.euro` to 1200 and returns `Joey.wallet.euro` (with commited changes)
 
 ### Complex query concepts
 
