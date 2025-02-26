@@ -213,7 +213,8 @@ pub enum QueryEntry {
     ArrayIndex(u64),
     Id(u64),
     Conditional(Box<dyn Fn(TagData<TagType>) -> bool>),
-    UpstreamConditional(Box<dyn Fn(TagData<TagType>) -> bool>)
+    UpstreamConditional(Box<dyn Fn(TagData<TagType>) -> bool>),
+    QueryConditional(Box<dyn Fn(Vec<(SearchResult, Option<Vec<TagData<TagType>>>)>) -> bool>),
 }
 
 pub enum SearchResult {
@@ -621,6 +622,10 @@ impl DatabaseReader {
                             continue;
                         }
                     }
+                }
+
+                QueryEntry::QueryConditional(ref predicate) => {
+                    todo!()
                 }
             }
         }
