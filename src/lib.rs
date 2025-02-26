@@ -155,32 +155,6 @@ pub struct TagData<T> {
     tag_data: T
 }
 
-impl<T> TagData<T> {
-    pub fn new(
-        tag_id: u64,
-        tag_total_size: u64,
-        tag_name: u64,
-        tag_depth: u64,
-        tag_parents_size: u64,
-        tag_parents: AddressList,
-        tag_data_type: u8,
-        tag_data_size: u64,
-        tag_data: T,
-    ) -> Self {
-        TagData {
-            tag_id,
-            tag_total_size,
-            tag_name,
-            tag_depth,
-            tag_parents_size,
-            tag_parents,
-            tag_data_type,
-            tag_data_size,
-            tag_data,
-        }
-    }
-}
-
 pub struct DataIndexTable {
     tags: Vec<TagIndex>
 }
