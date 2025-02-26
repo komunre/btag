@@ -199,7 +199,7 @@ pub struct DatabaseReader {
 }
 
 #[derive(Debug)]
-pub enum DatabaseReadErrorKind {
+pub enum DatabaseErrorKind {
     ClusterValidity,
     ClusterIncompatibleVersion,
     UnsupportedTextEncoding,
@@ -249,9 +249,9 @@ impl DatabaseReader {
         u8::from_le_bytes(slice.try_into().unwrap())
     }*/
 
-    pub fn seek(&mut self, offset: i64) -> Result<(), DatabaseReadErrorKind> {
+    pub fn seek(&mut self, offset: i64) -> Result<(), DatabaseErrorKind> {
         if let Err(_) = self.file_reader.seek_relative(offset) {
-            return Err(DatabaseReadErrorKind::IOError);
+            return Err(DatabaseErrorKind::IOError);
         }
         self.current_index_table_offset -= offset;
         Ok(())
@@ -268,21 +268,21 @@ impl DatabaseReader {
     }
     
 
-    pub fn read_cluster(&mut self, cluster_offset: u64) -> Result<ClusterMetadata, DatabaseReadErrorKind> {
+    pub fn read_cluster(&mut self, cluster_offset: u64) -> Result<ClusterMetadata, DatabaseErrorKind> {
         if let Err(_) = self.file_reader.seek(std::io::SeekFrom::Start(cluster_offset)) {
-            return Err(DatabaseReadErrorKind::ClusterValidity)
+            return Err(DatabaseErrorKind::ClusterValidity)
         }
         
         let mut cluster_data: [u8;62] = [0;62];
         if let Err(_) = self.read_to_buf(&mut cluster_data) {
-            return Err(DatabaseReadErrorKind::ClusterValidity)
+            return Err(DatabaseErrorKind::ClusterValidity)
         }
         let validity = match String::from_utf8(cluster_data[0..4].to_vec()) { // 0-3
             Ok (v) => v,
-            Err(_) => return Err(DatabaseReadErrorKind::ClusterValidity)
+            Err(_) => return Err(DatabaseErrorKind::ClusterValidity)
         };
         if validity != "BTAG" {
-            return Err(DatabaseReadErrorKind::ClusterValidity)
+            return Err(DatabaseErrorKind::ClusterValidity)
         }
         let version = DatabaseReader::read_u32_from_slice(&cluster_data[4..8]); // 4-8
         let cluster_index = DatabaseReader::read_u64_from_slice(&cluster_data[8..16]);
@@ -309,14 +309,14 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_index_table(&mut self, index_table_offset: u64) -> Result<IndexTable, DatabaseReadErrorKind> {
+    pub fn read_index_table(&mut self, index_table_offset: u64) -> Result<IndexTable, DatabaseErrorKind> {
         if let Err(_) = self.file_reader.seek(SeekFrom::Start(index_table_offset)) {
-            return Err(DatabaseReadErrorKind::IndexTableValidity)
+            return Err(DatabaseErrorKind::IndexTableValidity)
         }
 
         let mut table_data: [u8; 40] = [0;40];
         if let Err(_) = self.read_to_buf(&mut table_data) {
-            return Err(DatabaseReadErrorKind::IndexTableValidity)
+            return Err(DatabaseErrorKind::IndexTableValidity)
         }
         let index_table_size = DatabaseReader::read_u64_from_slice(&table_data[0..8]);
         let index_table_names_size = DatabaseReader::read_u32_from_slice(&table_data[8..12]);
@@ -337,7 +337,7 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_names_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<NamesIndexTable, DatabaseReadErrorKind> {
+    pub fn read_names_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<NamesIndexTable, DatabaseErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_names_offset).unwrap())?;
         let size = index_table.index_table_names_size;
         
@@ -348,18 +348,18 @@ impl DatabaseReader {
         while i < size {
             let mut name_data = [0;8];
             if let Err(_) = self.read_to_buf(&mut name_data) {
-                return Err(DatabaseReadErrorKind::IOError);
+                return Err(DatabaseErrorKind::IOError);
             }
             let name = DatabaseReader::read_u64_from_slice(&name_data[0..8]);
             let name_string_size = DatabaseReader::read_u16_from_slice(&name_data[8..10]);
             let mut name_string = Vec::with_capacity(name_string_size.into());
             if let Err(_) = self.read_to_buf(&mut name_string) {
-                return Err(DatabaseReadErrorKind::IOError);
+                return Err(DatabaseErrorKind::IOError);
             }
 
             let s = match String::from_utf8(name_string) {
                 Ok(v) => v,
-                Err(_) => return Err(DatabaseReadErrorKind::StringValidity),
+                Err(_) => return Err(DatabaseErrorKind::StringValidity),
             };
 
             names.push(
@@ -380,7 +380,7 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_tags_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<DataIndexTable, DatabaseReadErrorKind> {
+    pub fn read_tags_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<DataIndexTable, DatabaseErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_tags_offset).unwrap())?;
         let size = index_table.index_table_tags_size;
 
@@ -392,7 +392,7 @@ impl DatabaseReader {
             let mut buf = [0; 24];
             if let Err(_) = self.read_to_buf(&mut buf) {
                 return Err(
-                    DatabaseReadErrorKind::IOError
+                    DatabaseErrorKind::IOError
                 );
             }
             
@@ -407,7 +407,7 @@ impl DatabaseReader {
 
             if let Err(_) = self.read_to_buf(&mut buf) {
                 return Err(
-                    DatabaseReadErrorKind::IOError
+                    DatabaseErrorKind::IOError
                 );
             }
 
@@ -436,13 +436,13 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_tag_data(&mut self, offset: u64) -> Result<TagData<TagType>, DatabaseReadErrorKind> {
+    pub fn read_tag_data(&mut self, offset: u64) -> Result<TagData<TagType>, DatabaseErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset).unwrap())?;
 
         // read basic data
         let mut buf = [0;40];
         if let Err(_) = self.read_to_buf(&mut buf) {
-            return Err(DatabaseReadErrorKind::IOError);
+            return Err(DatabaseErrorKind::IOError);
         }
 
         let tag_id = DatabaseReader::read_u64_from_slice(&buf[0..8]);
@@ -457,7 +457,7 @@ impl DatabaseReader {
         // read leftovers
         let mut buf = [0;9];
         if let Err(_) = self.read_to_buf(&mut buf) {
-            return Err(DatabaseReadErrorKind::IOError);
+            return Err(DatabaseErrorKind::IOError);
         }
 
         let tag_data_type = buf[0];
@@ -465,7 +465,7 @@ impl DatabaseReader {
 
         let mut buf = Vec::with_capacity(tag_data_size.try_into().unwrap());
         if let Err(_) = self.read_to_buf(&mut buf) {
-            return Err(DatabaseReadErrorKind::IOError);
+            return Err(DatabaseErrorKind::IOError);
         }
 
         let tag_data = match tag_data_type {
@@ -519,14 +519,14 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_parents(&mut self, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<(), DatabaseReadErrorKind> {
+    pub fn read_parents(&mut self, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<(), DatabaseErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap())?;
 
         let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
         for _ in 0..parent_count {
             let mut buf = [0;16];
             if let Err(_) = self.read_to_buf(&mut buf) { 
-                return Err(DatabaseReadErrorKind::IOError);
+                return Err(DatabaseErrorKind::IOError);
             }
 
             tag_data.tag_parents.array.push(
@@ -540,13 +540,13 @@ impl DatabaseReader {
         Ok(())
     }
 
-    pub fn find_upstream(&mut self, query: &Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> { // Return all upstream matches in form of AddressList, representing full sequence of search
+    pub fn find_upstream(&mut self, query: &Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseErrorKind> { // Return all upstream matches in form of AddressList, representing full sequence of search
         let result = self.recursive_upstream_search(query, 0, Vec::new(), offset, tag_data);
 
         return result;
     }
 
-    fn recursive_upstream_search(&mut self, query: &Vec<QueryEntry>, query_index: i32, mut hierarchy: Vec<AddressEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseReadErrorKind> {
+    fn recursive_upstream_search(&mut self, query: &Vec<QueryEntry>, query_index: i32, mut hierarchy: Vec<AddressEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseErrorKind> {
         self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset + 41).unwrap())?;
         
         let mut valid_search_paths: Vec<(AddressEntry, i32)> = Vec::new();
@@ -566,7 +566,7 @@ impl DatabaseReader {
 
             let mut buf = [0;16];
             if let Err(_) = self.read_to_buf(&mut buf) { 
-                return Err(DatabaseReadErrorKind::IOError);
+                return Err(DatabaseErrorKind::IOError);
             }
 
             let entry = AddressEntry {
