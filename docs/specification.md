@@ -15,6 +15,7 @@ last_name_index(u64) increments with every new name
 ## Tags Index Table Page
 Every offset is calculated from index table page start, i.e. first byte of index_table_size.
 
+
 index_table_size(u64)
 
 index_table_names_size(u32)
@@ -111,6 +112,7 @@ address_count(u64)
 
 array [(name(u64), address(u64)); address_count]
 
+
 *AddressList can be addressed by entry name `.<entry_name>` or by index via `.<number>`
 
 `mylist.myentry`
@@ -138,6 +140,7 @@ text(char_size)
 
 # Commands
 Querying AddressList without array index at any point in full query must process all AddressList entries and return all matches in processed entries. I.E.
+
 
 `wallet.euro..0..%name` must return name of every parent of `wallet`, but only needs to process first parent of `euro`.
 
@@ -178,12 +181,14 @@ Define value for tag field update
 #### Set 
 Set tag value
 
+
 **Syntax**
 `target = value`
 
 `#entry_id = value`
 
 `#entry_id = &#entry_reference`
+
 
 #### **EXAMPLES**
 `Joey.wallet.euro = 1200` Set all entries of `Joey.wallet.euro` to 1200
@@ -209,6 +214,7 @@ Returns all tags that have been changed by the query
 
 `$%=%`
 
+
 #### **EXAMPLES**
 `(Joey.wallet.euro = 1200)$%=%` sets `Joey.wallet.euro` to 1200 and returns `Joey.wallet.euro` (with commited changes)
 
@@ -225,6 +231,7 @@ y.a.b.->c
 ```
 
 We want to find `a.b` and `y.a.b` that have value or reference of value `c`, while ignoring `x.b`. There are multiple approaches to this problem.
+
 
 1. Depthless query
 ---
@@ -279,6 +286,7 @@ This query will perform 4 queries, finding parent of every digit, then compare i
 
 #### Get
 query tag value
+
 
 #### **EXAMPLE**
 `wallet.euro`
