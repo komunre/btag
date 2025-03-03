@@ -5,7 +5,7 @@ Each database file / cluster is independent from any other. Each database file /
 Every cluster metadata must be loaded before database is ready to use. This is neccessary to determine biggest cluster index for further increments.
 
 ## Database cluster metadata
-BTAG (constant ASCII string) version(u32) cluster_index(u64) index_table_offset(u64) text_encoding(u16) database_size(u64) last_name_index(u64) names_index_padding(u32) data_index_padding(u32) tag_data_padding(u32) next_cluster(u64)
+BTAG (constant ASCII string) version(u32) cluster_index(u64) index_table_offset(u64) text_encoding(u16) database_size(u64) last_name_index(u64) names_index_padding(u32) data_index_padding(u32) minum_tag_data_padding(u32) next_cluster(u64)
 
 if next_cluster is equal to 0x00 - it is treated as non-existent, i.e. entire file is a single cluster.
 
@@ -23,6 +23,7 @@ index_table_tags_offset(u64)
 index_table_next_page_offset(u64)
 **[SECTION_INDEX_TABLE_NAMES]**
 **[SECTION_INDEX_TABLE_TAGS]**
+**[REFERENCE_COUNT_TABLE]**
 
 ## Names index table [SECTON_INDEX_TABLE_NAMES]
 name(u64) **[must be unique]**
@@ -30,6 +31,11 @@ name_string_size(u16)
 name_string(name_string_size)
 <names_index_padding PADDING>
 <NEXT_ENTRY>
+
+## Reference count table [REFERENCE_COUNT_TABLE]
+address(u64)
+count(u64)
+referencing_tags( [name(u64); count] ) // Array of names of tags that reference this value
 
 ## Data index table 	[SECTION_INDEX_TABLE_TAGS]
 tag_id(u64)
@@ -52,7 +58,7 @@ tag_parents(tag_parents_size)
 tag_data_type(u8) 
 tag_data_size(u64)
 [tag_data(tag_data_size). AddressList.]
-<tag_data_padding PADDING>
+<minimum_tag_data_padding PADDING>
 <NEXT_ENTRY>
 
 # Data types
@@ -63,6 +69,12 @@ tag_data_size(u64)
 - AddressList
 - Text
 - Char[]
+
+### Note on references
+Deleting/moving a value without changing all related references to this value address must be considered an Undefined Behaviour and forbidden. Default behaviour of moving is considered to be change of all references to new value address. Behaviour of referenced value deletion must be explicitly defined by user.
+
+### Value address moving
+In case of lack of space to accomodate new value - value may be moved to arbitrary point in address space; tag value is set to reference new value address.
 
 #### AddressList definition
 address_count(u64)
