@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fs::File, io::{BufRead, BufReader, Read, Seek, SeekFrom}};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader, Read, Seek, SeekFrom},
+};
 
 #[derive(Debug)]
 pub struct ClusterMetadata {
@@ -32,11 +36,7 @@ pub struct NameIndex {
 }
 
 impl NameIndex {
-    pub fn new(
-        name: u64,
-        name_string_size: u16,
-        name_string: String,
-    ) -> Self {
+    pub fn new(name: u64, name_string_size: u16, name_string: String) -> Self {
         NameIndex {
             name,
             name_string_size,
@@ -55,13 +55,7 @@ pub struct TagIndex {
 }
 
 impl TagIndex {
-    pub fn new(
-        tag_id: u64,
-        name: u64,
-        depth: u64,
-        full_path: Vec<u64>,
-        offset: u64
-    ) -> Self {
+    pub fn new(tag_id: u64, name: u64, depth: u64, full_path: Vec<u64>, offset: u64) -> Self {
         TagIndex {
             tag_id,
             name,
@@ -79,22 +73,18 @@ pub struct NamesIndexTable {
 
 impl NamesIndexTable {
     pub fn new(names: Vec<NameIndex>) -> Self {
-        NamesIndexTable {
-            names
-        }
+        NamesIndexTable { names }
     }
 }
 
 #[derive(Debug)]
 pub struct TagIndexTable {
-    tags: Vec<TagIndex>
+    tags: Vec<TagIndex>,
 }
 
 impl TagIndexTable {
     pub fn new(tags: Vec<TagIndex>) -> Self {
-        TagIndexTable {
-            tags
-        }
+        TagIndexTable { tags }
     }
 }
 
@@ -126,9 +116,9 @@ impl PartialEq for AddressEntry {
 }
 
 #[derive(Clone, Debug)]
-pub struct AddressList { 
+pub struct AddressList {
     address_count: u64,
-    array: Vec<AddressEntry>
+    array: Vec<AddressEntry>,
 }
 
 impl PartialEq for AddressList {
@@ -160,11 +150,11 @@ pub struct TagData<T> {
     tag_parents: AddressList,
     tag_data_type: u8,
     tag_data_size: u64,
-    tag_data: T
+    tag_data: T,
 }
 
 pub struct DataIndexTable {
-    tags: Vec<TagIndex>
+    tags: Vec<TagIndex>,
 }
 
 pub struct BTag {
@@ -204,7 +194,7 @@ pub enum QueryEntry {
 pub enum SearchResult {
     Found(Vec<AddressList>),
     Match(Vec<AddressEntry>),
-    None
+    None,
 }
 
 impl DatabaseReader {
@@ -250,23 +240,29 @@ impl DatabaseReader {
     pub fn advance_seeker(&mut self, advance: i64) {
         self.current_index_table_offset -= advance;
     }
-    
 
-    pub fn read_cluster(&mut self, cluster_offset: u64) -> Result<ClusterMetadata, DatabaseErrorKind> {
-        if let Err(_) = self.file_reader.seek(std::io::SeekFrom::Start(cluster_offset)) {
-            return Err(DatabaseErrorKind::ClusterValidity)
+    pub fn read_cluster(
+        &mut self,
+        cluster_offset: u64,
+    ) -> Result<ClusterMetadata, DatabaseErrorKind> {
+        if let Err(_) = self
+            .file_reader
+            .seek(std::io::SeekFrom::Start(cluster_offset))
+        {
+            return Err(DatabaseErrorKind::ClusterValidity);
         }
-        
-        let mut cluster_data: [u8;62] = [0;62];
+
+        let mut cluster_data: [u8; 62] = [0; 62];
         if let Err(_) = self.read_to_buf(&mut cluster_data) {
-            return Err(DatabaseErrorKind::ClusterValidity)
+            return Err(DatabaseErrorKind::ClusterValidity);
         }
-        let validity = match String::from_utf8(cluster_data[0..4].to_vec()) { // 0-3
-            Ok (v) => v,
-            Err(_) => return Err(DatabaseErrorKind::ClusterValidity)
+        let validity = match String::from_utf8(cluster_data[0..4].to_vec()) {
+            // 0-3
+            Ok(v) => v,
+            Err(_) => return Err(DatabaseErrorKind::ClusterValidity),
         };
         if validity != "BTAG" {
-            return Err(DatabaseErrorKind::ClusterValidity)
+            return Err(DatabaseErrorKind::ClusterValidity);
         }
         let version = DatabaseReader::read_u32_from_slice(&cluster_data[4..8]); // 4-8
         let cluster_index = DatabaseReader::read_u64_from_slice(&cluster_data[8..16]);
@@ -278,7 +274,7 @@ impl DatabaseReader {
         let data_index_padding = DatabaseReader::read_u32_from_slice(&cluster_data[46..50]);
         let tag_data_padding = DatabaseReader::read_u32_from_slice(&cluster_data[50..54]);
         let next_cluster = DatabaseReader::read_u64_from_slice(&cluster_data[54..62]);
-        
+
         Ok(ClusterMetadata {
             version,
             cluster_index,
@@ -289,18 +285,21 @@ impl DatabaseReader {
             names_index_padding,
             data_index_padding,
             tag_data_padding,
-            next_cluster
+            next_cluster,
         })
     }
 
-    pub fn read_index_table(&mut self, index_table_offset: u64) -> Result<IndexTable, DatabaseErrorKind> {
+    pub fn read_index_table(
+        &mut self,
+        index_table_offset: u64,
+    ) -> Result<IndexTable, DatabaseErrorKind> {
         if let Err(_) = self.file_reader.seek(SeekFrom::Start(index_table_offset)) {
-            return Err(DatabaseErrorKind::IndexTableValidity)
+            return Err(DatabaseErrorKind::IndexTableValidity);
         }
 
-        let mut table_data: [u8; 40] = [0;40];
+        let mut table_data: [u8; 40] = [0; 40];
         if let Err(_) = self.read_to_buf(&mut table_data) {
-            return Err(DatabaseErrorKind::IndexTableValidity)
+            return Err(DatabaseErrorKind::IndexTableValidity);
         }
         let index_table_size = DatabaseReader::read_u64_from_slice(&table_data[0..8]);
         let index_table_names_size = DatabaseReader::read_u32_from_slice(&table_data[8..12]);
@@ -321,16 +320,23 @@ impl DatabaseReader {
         })
     }
 
-    pub fn read_names_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<NamesIndexTable, DatabaseErrorKind> {
-        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_names_offset).unwrap())?;
+    pub fn read_names_index(
+        &mut self,
+        index_table: IndexTable,
+        cluster_metadata: ClusterMetadata,
+    ) -> Result<NamesIndexTable, DatabaseErrorKind> {
+        self.seek(
+            self.current_index_table_offset
+                + <u64 as TryInto<i64>>::try_into(index_table.index_table_names_offset).unwrap(),
+        )?;
         let size = index_table.index_table_names_size;
-        
+
         let mut i: u32 = 0;
 
         let mut names: Vec<NameIndex> = Vec::new();
 
         while i < size {
-            let mut name_data = [0;8];
+            let mut name_data = [0; 8];
             if let Err(_) = self.read_to_buf(&mut name_data) {
                 return Err(DatabaseErrorKind::IOError);
             }
@@ -346,26 +352,29 @@ impl DatabaseReader {
                 Err(_) => return Err(DatabaseErrorKind::StringValidity),
             };
 
-            names.push(
-                NameIndex {
-                    name,
-                    name_string_size,
-                    name_string: s,
-                }
-            );
+            names.push(NameIndex {
+                name,
+                name_string_size,
+                name_string: s,
+            });
 
             self.seek(cluster_metadata.names_index_padding.into())?;
 
             i += 8 + u32::from(name_string_size) + cluster_metadata.names_index_padding;
         }
 
-        Ok(NamesIndexTable {
-            names
-        })
+        Ok(NamesIndexTable { names })
     }
 
-    pub fn read_tags_index(&mut self, index_table: IndexTable, cluster_metadata: ClusterMetadata) -> Result<DataIndexTable, DatabaseErrorKind> {
-        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(index_table.index_table_tags_offset).unwrap())?;
+    pub fn read_tags_index(
+        &mut self,
+        index_table: IndexTable,
+        cluster_metadata: ClusterMetadata,
+    ) -> Result<DataIndexTable, DatabaseErrorKind> {
+        self.seek(
+            self.current_index_table_offset
+                + <u64 as TryInto<i64>>::try_into(index_table.index_table_tags_offset).unwrap(),
+        )?;
         let size = index_table.index_table_tags_size;
 
         let mut tags: Vec<TagIndex> = Vec::new();
@@ -375,56 +384,50 @@ impl DatabaseReader {
         for _ in 0..tags_count {
             let mut buf = [0; 24];
             if let Err(_) = self.read_to_buf(&mut buf) {
-                return Err(
-                    DatabaseErrorKind::IOError
-                );
+                return Err(DatabaseErrorKind::IOError);
             }
-            
+
             let tag_id = DatabaseReader::read_u64_from_slice(&buf[0..8]);
             let name = DatabaseReader::read_u64_from_slice(&buf[8..16]);
             let depth = DatabaseReader::read_u64_from_slice(&buf[16..24]);
 
-            
             let full_path_size = depth * 8;
             let mut full_path: Vec<u64> = Vec::with_capacity(depth.try_into().unwrap());
             let mut buf = Vec::with_capacity(full_path_size.try_into().unwrap());
 
             if let Err(_) = self.read_to_buf(&mut buf) {
-                return Err(
-                    DatabaseErrorKind::IOError
-                );
+                return Err(DatabaseErrorKind::IOError);
             }
 
             for j in 0..depth {
                 let start = (j * 8).try_into().unwrap();
                 let end = (j * 8 + 8).try_into().unwrap();
-                full_path[<u64 as TryInto<usize>>::try_into(j).unwrap()] = DatabaseReader::read_u64_from_slice(&buf[start..end])
+                full_path[<u64 as TryInto<usize>>::try_into(j).unwrap()] =
+                    DatabaseReader::read_u64_from_slice(&buf[start..end])
             }
             let offset = DatabaseReader::read_u64_from_slice(&buf[24..32]);
 
-            tags.push(
-                TagIndex {
-                    tag_id,
-                    name,
-                    depth,
-                    full_path,
-                    offset
-                }
-            );
+            tags.push(TagIndex {
+                tag_id,
+                name,
+                depth,
+                full_path,
+                offset,
+            });
 
             self.seek(cluster_metadata.data_index_padding.into())?;
         }
 
-        Ok(DataIndexTable {
-            tags
-        })
+        Ok(DataIndexTable { tags })
     }
 
     pub fn read_tag_data(&mut self, offset: u64) -> Result<TagData<TagType>, DatabaseErrorKind> {
-        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset).unwrap())?;
+        self.seek(
+            self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset).unwrap(),
+        )?;
 
         // read basic data
-        let mut buf = [0;40];
+        let mut buf = [0; 40];
         if let Err(_) = self.read_to_buf(&mut buf) {
             return Err(DatabaseErrorKind::IOError);
         }
@@ -437,9 +440,9 @@ impl DatabaseReader {
 
         // skip parents
         self.seek(tag_parents_size.try_into().unwrap())?;
-        
+
         // read leftovers
-        let mut buf = [0;9];
+        let mut buf = [0; 9];
         if let Err(_) = self.read_to_buf(&mut buf) {
             return Err(DatabaseErrorKind::IOError);
         }
@@ -456,7 +459,10 @@ impl DatabaseReader {
             0 => TagType::Integer(DatabaseReader::read_u64_from_slice(&buf[0..8])),
             1 => TagType::Float(DatabaseReader::read_f32_from_slice(&buf[0..4])),
             2 => TagType::Double(DatabaseReader::read_f64_from_slice(&buf[0..8])),
-            3 => TagType::AddressEntry(AddressEntry { name: DatabaseReader::read_u64_from_slice(&buf[0..8]), address: DatabaseReader::read_u64_from_slice(&buf[8..16]) }),
+            3 => TagType::AddressEntry(AddressEntry {
+                name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
+                address: DatabaseReader::read_u64_from_slice(&buf[8..16]),
+            }),
             4 => {
                 let count = DatabaseReader::read_u64_from_slice(&buf[0..8]);
                 //let size = count * 16;
@@ -467,24 +473,23 @@ impl DatabaseReader {
                     let start = (i * 16).try_into().unwrap();
                     let end = start + 16;
                     let name = DatabaseReader::read_u64_from_slice(&buf[start..end]);
-                    
+
                     let start = end;
                     let end = start + 16;
                     let address = DatabaseReader::read_u64_from_slice(&buf[start..end]);
 
-                    entries.push(AddressEntry {
-                        name,
-                        address
-                    });
+                    entries.push(AddressEntry { name, address });
                 }
 
                 TagType::AddressList(AddressList {
                     address_count: count,
-                    array: entries
+                    array: entries,
                 })
             }
-            5 => TagType::Text(String::from_utf8(buf[0..tag_data_size.try_into().unwrap()].to_vec()).unwrap()),
-            _ => todo!()
+            5 => TagType::Text(
+                String::from_utf8(buf[0..tag_data_size.try_into().unwrap()].to_vec()).unwrap(),
+            ),
+            _ => todo!(),
         };
 
         Ok(TagData::<TagType> {
@@ -495,46 +500,66 @@ impl DatabaseReader {
             tag_parents_size,
             tag_parents: AddressList {
                 address_count: tag_depth,
-                array: Vec::with_capacity(tag_depth.try_into().unwrap())
+                array: Vec::with_capacity(tag_depth.try_into().unwrap()),
             },
             tag_data_type,
             tag_data_size,
-            tag_data
+            tag_data,
         })
     }
 
-    pub fn read_parents(&mut self, tag_index: TagIndex, tag_data: &mut TagData<TagType>) -> Result<(), DatabaseErrorKind> {
-        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap())?;
+    pub fn read_parents(
+        &mut self,
+        tag_index: TagIndex,
+        tag_data: &mut TagData<TagType>,
+    ) -> Result<(), DatabaseErrorKind> {
+        self.seek(
+            self.current_index_table_offset
+                + <u64 as TryInto<i64>>::try_into(tag_index.offset + 41).unwrap(),
+        )?;
 
         let parent_count = tag_data.tag_depth; // Not needed, it's here just for semantics.
         for _ in 0..parent_count {
-            let mut buf = [0;16];
-            if let Err(_) = self.read_to_buf(&mut buf) { 
+            let mut buf = [0; 16];
+            if let Err(_) = self.read_to_buf(&mut buf) {
                 return Err(DatabaseErrorKind::IOError);
             }
 
-            tag_data.tag_parents.array.push(
-                AddressEntry {
-                    name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
-                    address: DatabaseReader::read_u64_from_slice(&buf[8..16])
-                }
-            )
+            tag_data.tag_parents.array.push(AddressEntry {
+                name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
+                address: DatabaseReader::read_u64_from_slice(&buf[8..16]),
+            })
         }
 
         Ok(())
     }
 
-    pub fn find_upstream(&mut self, query: &Vec<QueryEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseErrorKind> { // Return all upstream matches in form of AddressList, representing full sequence of search
+    pub fn find_upstream(
+        &mut self,
+        query: &Vec<QueryEntry>,
+        offset: u64,
+        tag_data: &TagData<TagType>,
+    ) -> Result<SearchResult, DatabaseErrorKind> {
+        // Return all upstream matches in form of AddressList, representing full sequence of search
         let result = self.recursive_upstream_search(query, 0, Vec::new(), offset, tag_data);
 
         return result;
     }
 
-    fn recursive_upstream_search(&mut self, query: &Vec<QueryEntry>, query_index: i32, mut hierarchy: Vec<AddressEntry>, offset: u64, tag_data: &TagData<TagType>) -> Result<SearchResult, DatabaseErrorKind> {
-        self.seek(self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset + 41).unwrap())?;
-        
+    fn recursive_upstream_search(
+        &mut self,
+        query: &Vec<QueryEntry>,
+        query_index: i32,
+        mut hierarchy: Vec<AddressEntry>,
+        offset: u64,
+        tag_data: &TagData<TagType>,
+    ) -> Result<SearchResult, DatabaseErrorKind> {
+        self.seek(
+            self.current_index_table_offset + <u64 as TryInto<i64>>::try_into(offset + 41).unwrap(),
+        )?;
+
         let mut valid_search_paths: Vec<(AddressEntry, i32)> = Vec::new();
-        
+
         let parent_count = tag_data.tag_parents_size / 16;
         if query_index == query.iter().count().try_into().unwrap() {
             // Query has ended. We found an entire path, therefore it's a Match.
@@ -544,18 +569,18 @@ impl DatabaseReader {
 
         let mut matches: Vec<AddressList> = Vec::new();
 
-        // Check every parent to find those that match the condition 
+        // Check every parent to find those that match the condition
         for i in 0..parent_count {
             let next_index = query_index + 1;
 
-            let mut buf = [0;16];
-            if let Err(_) = self.read_to_buf(&mut buf) { 
+            let mut buf = [0; 16];
+            if let Err(_) = self.read_to_buf(&mut buf) {
                 return Err(DatabaseErrorKind::IOError);
             }
 
             let entry = AddressEntry {
                 name: DatabaseReader::read_u64_from_slice(&buf[0..8]),
-                address: DatabaseReader::read_u64_from_slice(&buf[8..16])
+                address: DatabaseReader::read_u64_from_slice(&buf[8..16]),
             };
 
             match q {
@@ -580,18 +605,16 @@ impl DatabaseReader {
                     }
                 }
 
-                QueryEntry::Conditional(ref predicate) => {
-                    match self.read_tag_data(entry.address) {
-                        Ok(data) => {
-                            if predicate(data) {
-                                valid_search_paths.push((entry, next_index));
-                            }
-                        }
-                        Err(_) => {
-                            continue;
+                QueryEntry::Conditional(ref predicate) => match self.read_tag_data(entry.address) {
+                    Ok(data) => {
+                        if predicate(data) {
+                            valid_search_paths.push((entry, next_index));
                         }
                     }
-                }
+                    Err(_) => {
+                        continue;
+                    }
+                },
 
                 QueryEntry::UpstreamConditional(ref predicate) => {
                     match self.read_tag_data(entry.address) {
@@ -623,17 +646,26 @@ impl DatabaseReader {
                     continue;
                 }
             };
-            let r = self.recursive_upstream_search(query, parent.1, hierarchy.clone(), parent.0.address, &tag_data);
+            let r = self.recursive_upstream_search(
+                query,
+                parent.1,
+                hierarchy.clone(),
+                parent.0.address,
+                &tag_data,
+            );
             if let Ok(r) = r {
                 match r {
-                    SearchResult::Match(m) => {
-                        matches.push(AddressList {
-                            address_count: m.iter().count().try_into().unwrap(),
-                            array: m,
-                        })
-                    }
-                    SearchResult::Found(list) => { // Potentially significant performance impact. We should consider better implementations.
-                        let mut list = list.iter().take_while(|x| !matches.contains(x)).map(|x| x.clone()).collect();
+                    SearchResult::Match(m) => matches.push(AddressList {
+                        address_count: m.iter().count().try_into().unwrap(),
+                        array: m,
+                    }),
+                    SearchResult::Found(list) => {
+                        // Potentially significant performance impact. We should consider better implementations.
+                        let mut list = list
+                            .iter()
+                            .take_while(|x| !matches.contains(x))
+                            .map(|x| x.clone())
+                            .collect();
                         matches.append(&mut list);
                         return Ok(SearchResult::Found(matches));
                     }
@@ -649,6 +681,6 @@ impl DatabaseReader {
             return Ok(SearchResult::None);
         }
         // Recursively return all matches
-        return Ok(SearchResult::Found(matches))
+        return Ok(SearchResult::Found(matches));
     }
 }
